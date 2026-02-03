@@ -5,14 +5,16 @@ function App() {
     <div style={{ padding: 30, fontFamily: 'Arial' }}>
       <h1>Consultorio Médico</h1>
 
-      <p>Bienvenido al sistema del consultorio.</p>
+      <p>Seleccione una opción:</p>
 
       <ul>
-        <li>📅 Citas médicas</li>
         <li>👨‍⚕️ Pacientes</li>
-        <li>📄 Expedientes</li>
-        <li>💊 Tratamientos</li>
+        <li>📅 Citas médicas</li>
       </ul>
+
+      <p style={{ marginTop: 20, color: 'gray' }}>
+        Los expedientes, tratamientos e historial clínico se gestionan dentro de cada paciente.
+      </p>
     </div>
   );
 }
