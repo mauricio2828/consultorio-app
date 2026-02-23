@@ -1,11 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
 
 function App() {
-  const [vista, setVista] = useState("menu");
-  const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
-  const [fechaSeleccionada, setFechaSeleccionada] = useState(null);
-  const [citas, setCitas] = useState({});
 
   const pacientes = [
     { id: 1, nombre: "Juan Pérez" },
@@ -18,14 +14,37 @@ function App() {
   const mes = hoy.getMonth();
   const diasEnMes = new Date(año, mes + 1, 0).getDate();
 
-  const dias = [];
-  for (let i = 1; i <= diasEnMes; i++) {
-    dias.push(i);
-  }
+  const [vista, setVista] = useState("menu");
+  const [fechaSeleccionada, setFechaSeleccionada] = useState(null);
+  const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
+
+  const [config, setConfig] = useState(() => {
+    const guardado = localStorage.getItem("config");
+    return guardado
+      ? JSON.parse(guardado)
+      : { inicio: 9, fin: 18 };
+  });
+
+  const [citas, setCitas] = useState(() => {
+    const guardado = localStorage.getItem("citas");
+    return guardado ? JSON.parse(guardado) : {};
+  });
+
+  useEffect(() => {
+    localStorage.setItem("citas", JSON.stringify(citas));
+  }, [citas]);
+
+  useEffect(() => {
+    localStorage.setItem("config", JSON.stringify(config));
+  }, [config]);
+
+  const obtenerClaveFecha = (dia) => {
+    return `${dia}-${mes + 1}-${año}`;
+  };
 
   const generarHorarios = () => {
     const horas = [];
-    for (let h = 9; h <= 18; h++) {
+    for (let h = config.inicio; h <= config.fin; h++) {
       let periodo = h >= 12 ? "PM" : "AM";
       let hora12 = h > 12 ? h - 12 : h;
       if (hora12 === 0) hora12 = 12;
@@ -34,109 +53,100 @@ function App() {
     return horas;
   };
 
-  const horarios = generarHorarios();
-
-  const obtenerClaveFecha = (dia) => {
-    return `${dia}-${mes + 1}-${año}`;
-  };
-
   const manejarCita = (hora) => {
+    if (!pacienteSeleccionado) {
+      alert("Selecciona un paciente primero");
+      return;
+    }
+
     const clave = obtenerClaveFecha(fechaSeleccionada);
     const citasDelDia = citas[clave] || [];
 
-    if (citasDelDia.includes(hora)) {
-      // Cancelar cita
-      const nuevasHoras = citasDelDia.filter(h => h !== hora);
-      setCitas({
-        ...citas,
-        [clave]: nuevasHoras
-      });
+    const existe = citasDelDia.find(c => c.hora === hora);
+
+    if (existe) {
+      const nuevas = citasDelDia.filter(c => c.hora !== hora);
+      setCitas({ ...citas, [clave]: nuevas });
     } else {
-      // Agendar cita
       setCitas({
         ...citas,
-        [clave]: [...citasDelDia, hora]
+        [clave]: [...citasDelDia, { hora, pacienteId: pacienteSeleccionado }]
       });
     }
   };
 
+  const dias = [];
+  for (let i = 1; i <= diasEnMes; i++) dias.push(i);
+
+  const horarios = generarHorarios();
+
   return (
-    <div style={{ padding: 30, fontFamily: "Arial" }}>
+    <div style={{ padding: 20, fontFamily: "Arial" }}>
       <h1>Consultorio Médico</h1>
 
       {vista === "menu" && (
         <>
-          <p>Seleccione una opción:</p>
-          <ul>
-            <li>
-              <button onClick={() => setVista("pacientes")}>
-                👨‍⚕️ Pacientes
-              </button>
-            </li>
-            <li>
-              <button onClick={() => setVista("citas")}>
-                📅 Citas médicas
-              </button>
-            </li>
-          </ul>
+          <button onClick={() => setVista("config")}>⚙ Configuración</button>
+          <br /><br />
+          <button onClick={() => setVista("citas")}>📅 Citas</button>
         </>
       )}
 
-      {vista === "pacientes" && !pacienteSeleccionado && (
+      {vista === "config" && (
         <>
           <button onClick={() => setVista("menu")}>⬅ Volver</button>
-          <h2>Lista de Pacientes</h2>
-          <ul>
-            {pacientes.map((p) => (
-              <li key={p.id}>
-                <button onClick={() => setPacienteSeleccionado(p)}>
-                  {p.nombre}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-
-      {pacienteSeleccionado && (
-        <>
-          <button onClick={() => setPacienteSeleccionado(null)}>
-            ⬅ Volver a Pacientes
-          </button>
-          <h2>Expediente</h2>
-          <p><strong>Paciente:</strong> {pacienteSeleccionado.nombre}</p>
-          <ul>
-            <li>📋 Historial clínico</li>
-            <li>💊 Tratamientos</li>
-            <li>📝 Notas médicas</li>
-          </ul>
+          <h2>Horario laboral</h2>
+          <p>Hora inicio:</p>
+          <input
+            type="number"
+            value={config.inicio}
+            onChange={(e) =>
+              setConfig({ ...config, inicio: parseInt(e.target.value) })
+            }
+          />
+          <p>Hora fin:</p>
+          <input
+            type="number"
+            value={config.fin}
+            onChange={(e) =>
+              setConfig({ ...config, fin: parseInt(e.target.value) })
+            }
+          />
         </>
       )}
 
       {vista === "citas" && (
         <>
           <button onClick={() => setVista("menu")}>⬅ Volver</button>
-          <h2>Calendario</h2>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(7, 1fr)",
-              gap: 10,
-              marginTop: 20,
-            }}
-          >
+          <h3>Selecciona paciente:</h3>
+          {pacientes.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => setPacienteSeleccionado(p.id)}
+              style={{
+                margin: 5,
+                backgroundColor:
+                  pacienteSeleccionado === p.id ? "#4CAF50" : "#ddd",
+              }}
+            >
+              {p.nombre}
+            </button>
+          ))}
+
+          <h3>Calendario</h3>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(7,1fr)",
+            gap: 5
+          }}>
             {dias.map((dia) => (
               <button
                 key={dia}
                 onClick={() => setFechaSeleccionada(dia)}
                 style={{
-                  padding: 15,
                   backgroundColor:
-                    fechaSeleccionada === dia ? "#4CAF50" : "#f0f0f0",
-                  border: "none",
-                  borderRadius: 8,
-                  cursor: "pointer",
+                    fechaSeleccionada === dia ? "#4CAF50" : "#eee"
                 }}
               >
                 {dia}
@@ -146,45 +156,31 @@ function App() {
 
           {fechaSeleccionada && (
             <>
-              <p style={{ marginTop: 20 }}>
-                Día seleccionado: {fechaSeleccionada}/{mes + 1}/{año}
-              </p>
-
               <h3>Horarios</h3>
+              {horarios.map((hora) => {
+                const clave = obtenerClaveFecha(fechaSeleccionada);
+                const citasDelDia = citas[clave] || [];
+                const cita = citasDelDia.find(c => c.hora === hora);
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
-                  gap: 10,
-                  marginTop: 10,
-                }}
-              >
-                {horarios.map((hora) => {
-                  const clave = obtenerClaveFecha(fechaSeleccionada);
-                  const ocupado =
-                    citas[clave] && citas[clave].includes(hora);
+                const nombrePaciente = cita
+                  ? pacientes.find(p => p.id === cita.pacienteId)?.nombre
+                  : null;
 
-                  return (
-                    <button
-                      key={hora}
-                      onClick={() => manejarCita(hora)}
-                      style={{
-                        padding: 10,
-                        borderRadius: 8,
-                        border: "none",
-                        backgroundColor: ocupado
-                          ? "#f44336"
-                          : "#2196F3",
-                        color: "white",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {hora}
-                    </button>
-                  );
-                })}
-              </div>
+                return (
+                  <button
+                    key={hora}
+                    onClick={() => manejarCita(hora)}
+                    style={{
+                      display: "block",
+                      margin: 5,
+                      backgroundColor: cita ? "#f44336" : "#2196F3",
+                      color: "white"
+                    }}
+                  >
+                    {hora} {nombrePaciente ? `- ${nombrePaciente}` : ""}
+                  </button>
+                );
+              })}
             </>
           )}
         </>
