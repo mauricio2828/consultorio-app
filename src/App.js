@@ -80,22 +80,56 @@ function App() {
 
   const horarios = generarHorarios();
 
+  const botonBase = {
+    padding: "12px",
+    margin: "6px",
+    borderRadius: "10px",
+    border: "none",
+    fontSize: "16px",
+    fontWeight: "bold",
+    cursor: "pointer",
+    boxShadow: "0 3px 6px rgba(0,0,0,0.1)"
+  };
+
   return (
-    <div style={{ padding: 20, fontFamily: "Arial" }}>
-      <h1>Consultorio Médico</h1>
+    <div style={{
+      padding: 20,
+      fontFamily: "Arial",
+      maxWidth: 500,
+      margin: "auto"
+    }}>
+
+      <h1 style={{ textAlign: "center" }}>Consultorio Médico</h1>
 
       {vista === "menu" && (
         <>
-          <button onClick={() => setVista("config")}>⚙ Configuración</button>
-          <br /><br />
-          <button onClick={() => setVista("citas")}>📅 Citas</button>
+          <button
+            style={{ ...botonBase, width: "100%", backgroundColor: "#1976D2", color: "white" }}
+            onClick={() => setVista("config")}
+          >
+            ⚙ Configuración
+          </button>
+
+          <button
+            style={{ ...botonBase, width: "100%", backgroundColor: "#388E3C", color: "white" }}
+            onClick={() => setVista("citas")}
+          >
+            📅 Citas
+          </button>
         </>
       )}
 
       {vista === "config" && (
         <>
-          <button onClick={() => setVista("menu")}>⬅ Volver</button>
+          <button
+            style={{ ...botonBase, backgroundColor: "#999", color: "white" }}
+            onClick={() => setVista("menu")}
+          >
+            ⬅ Volver
+          </button>
+
           <h2>Horario laboral</h2>
+
           <p>Hora inicio:</p>
           <input
             type="number"
@@ -103,7 +137,9 @@ function App() {
             onChange={(e) =>
               setConfig({ ...config, inicio: parseInt(e.target.value) })
             }
+            style={{ width: "100%", padding: 10, fontSize: 16 }}
           />
+
           <p>Hora fin:</p>
           <input
             type="number"
@@ -111,13 +147,19 @@ function App() {
             onChange={(e) =>
               setConfig({ ...config, fin: parseInt(e.target.value) })
             }
+            style={{ width: "100%", padding: 10, fontSize: 16 }}
           />
         </>
       )}
 
       {vista === "citas" && (
         <>
-          <button onClick={() => setVista("menu")}>⬅ Volver</button>
+          <button
+            style={{ ...botonBase, backgroundColor: "#999", color: "white" }}
+            onClick={() => setVista("menu")}
+          >
+            ⬅ Volver
+          </button>
 
           <h3>Selecciona paciente:</h3>
           {pacientes.map((p) => (
@@ -125,9 +167,11 @@ function App() {
               key={p.id}
               onClick={() => setPacienteSeleccionado(p.id)}
               style={{
-                margin: 5,
+                ...botonBase,
+                width: "100%",
                 backgroundColor:
-                  pacienteSeleccionado === p.id ? "#4CAF50" : "#ddd",
+                  pacienteSeleccionado === p.id ? "#4CAF50" : "#e0e0e0",
+                color: pacienteSeleccionado === p.id ? "white" : "black"
               }}
             >
               {p.nombre}
@@ -138,15 +182,17 @@ function App() {
           <div style={{
             display: "grid",
             gridTemplateColumns: "repeat(7,1fr)",
-            gap: 5
+            gap: 6
           }}>
             {dias.map((dia) => (
               <button
                 key={dia}
                 onClick={() => setFechaSeleccionada(dia)}
                 style={{
+                  ...botonBase,
+                  padding: "10px",
                   backgroundColor:
-                    fechaSeleccionada === dia ? "#4CAF50" : "#eee"
+                    fechaSeleccionada === dia ? "#4CAF50" : "#f5f5f5"
                 }}
               >
                 {dia}
@@ -171,9 +217,9 @@ function App() {
                     key={hora}
                     onClick={() => manejarCita(hora)}
                     style={{
-                      display: "block",
-                      margin: 5,
-                      backgroundColor: cita ? "#f44336" : "#2196F3",
+                      ...botonBase,
+                      width: "100%",
+                      backgroundColor: cita ? "#D32F2F" : "#1976D2",
                       color: "white"
                     }}
                   >
