@@ -4,35 +4,32 @@ import "./App.css";
 function App() {
 
   const [pagina, setPagina] = useState("menu");
-
   const [pacientes, setPacientes] = useState([]);
   const [citas, setCitas] = useState([]);
 
-  const [nombre, setNombre] = useState("");
-  const [telefono, setTelefono] = useState("");
-
   const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
-  const [diaSeleccionado, setDiaSeleccionado] = useState(null);
 
-  const [horaInicio, setHoraInicio] = useState(9);
-  const [horaFin, setHoraFin] = useState(18);
-  const [duracion, setDuracion] = useState(60);
+  const [fechaActual, setFechaActual] = useState(new Date());
+  const [fechaSeleccionada, setFechaSeleccionada] = useState(null);
+
+  const [form, setForm] = useState({
+    nombre: "",
+    telefono: "",
+    edad: "",
+    sexo: "",
+    motivo: "",
+    alergias: "",
+    enfermedades: "",
+    notas: ""
+  });
 
   // CARGAR
   useEffect(() => {
     const p = localStorage.getItem("pacientes");
     const c = localStorage.getItem("citas");
-    const config = localStorage.getItem("config");
 
     if (p) setPacientes(JSON.parse(p));
     if (c) setCitas(JSON.parse(c));
-
-    if (config) {
-      const conf = JSON.parse(config);
-      setHoraInicio(conf.inicio);
-      setHoraFin(conf.fin);
-      setDuracion(conf.duracion);
-    }
   }, []);
 
   // GUARDAR
@@ -44,55 +41,58 @@ function App() {
     localStorage.setItem("citas", JSON.stringify(citas));
   }, [citas]);
 
-  useEffect(() => {
-    localStorage.setItem("config", JSON.stringify({
-      inicio: horaInicio,
-      fin: horaFin,
-      duracion
-    }));
-  }, [horaInicio, horaFin, duracion]);
-
-  // HORAS DINÁMICAS
-  const horas = [];
-  for (let h = horaInicio; h < horaFin; h++) {
-    for (let m = 0; m < 60; m += duracion) {
-      let hora = h;
-      let minutos = m;
-      let ampm = hora >= 12 ? "PM" : "AM";
-      let hora12 = hora > 12 ? hora - 12 : hora;
-      if (hora12 === 0) hora12 = 12;
-
-      horas.push(`${hora12}:${minutos.toString().padStart(2, "0")} ${ampm}`);
-    }
-  }
-
   // PACIENTES
   const agregarPaciente = () => {
-    if (!nombre || !telefono) return alert("Completa datos");
+    if (!form.nombre) return alert("Nombre requerido");
 
     const nuevo = {
       id: Date.now(),
-      nombre,
-      telefono,
-      notas: ""
+      ...form
     };
 
     setPacientes([...pacientes, nuevo]);
-    setNombre("");
-    setTelefono("");
+
+    setForm({
+      nombre: "",
+      telefono: "",
+      edad: "",
+      sexo: "",
+      motivo: "",
+      alergias: "",
+      enfermedades: "",
+      notas: ""
+    });
   };
 
   const eliminarPaciente = (id) => {
     setPacientes(pacientes.filter(p => p.id !== id));
   };
 
+  // CALENDARIO
+  const cambiarMes = (num) => {
+    const nueva = new Date(fechaActual);
+    nueva.setMonth(nueva.getMonth() + num);
+    setFechaActual(nueva);
+  };
+
+  const diasEnMes = new Date(
+    fechaActual.getFullYear(),
+    fechaActual.getMonth() + 1,
+    0
+  ).getDate();
+
+  const nombreMes = fechaActual.toLocaleString("es-MX", {
+    month: "long",
+    year: "numeric"
+  });
+
   // CITAS
-  const agendarCita = (hora) => {
-    if (!pacienteSeleccionado) return alert("Selecciona paciente");
+  const agendar = (hora) => {
+    if (!pacienteSeleccionado || !fechaSeleccionada) return alert("Faltan datos");
 
     const nueva = {
       id: Date.now(),
-      dia: diaSeleccionado,
+      fecha: fechaSeleccionada,
       hora,
       paciente: pacienteSeleccionado.nombre
     };
@@ -100,29 +100,24 @@ function App() {
     setCitas([...citas, nueva]);
   };
 
-  const cancelarCita = (id) => {
-    setCitas(citas.filter(c => c.id !== id));
-  };
+  const citasDelDia = citas.filter(c => c.fecha === fechaSeleccionada);
 
-  const citasDelDia = citas.filter(c => c.dia === diaSeleccionado);
+  // HORAS
+  const horas = [];
+  for (let h = 9; h <= 18; h++) {
+    let hora12 = h > 12 ? h - 12 : h;
+    let ampm = h >= 12 ? "PM" : "AM";
+    horas.push(`${hora12}:00 ${ampm}`);
+  }
 
   // MENU
   if (pagina === "menu") {
     return (
       <div style={container}>
-        <h1 style={titulo}>Consultorio Médico</h1>
+        <h1>Consultorio Médico</h1>
 
-        <button style={boton} onClick={() => setPagina("pacientes")}>
-          👨‍⚕️ Pacientes
-        </button>
-
-        <button style={boton} onClick={() => setPagina("citas")}>
-          📅 Citas
-        </button>
-
-        <button style={boton} onClick={() => setPagina("config")}>
-          ⚙️ Configuración
-        </button>
+        <button style={btn} onClick={() => setPagina("pacientes")}>Pacientes</button>
+        <button style={btn} onClick={() => setPagina("citas")}>Citas</button>
       </div>
     );
   }
@@ -131,42 +126,41 @@ function App() {
   if (pagina === "pacientes") {
     return (
       <div style={container}>
-        <h2 style={titulo}>Pacientes</h2>
+        <button style={btn} onClick={() => setPagina("menu")}>⬅ Volver</button>
 
-        <button style={boton} onClick={() => setPagina("menu")}>⬅ Volver</button>
+        <h2>Agregar paciente</h2>
 
-        <input style={input} placeholder="Nombre" value={nombre} onChange={e => setNombre(e.target.value)} />
-        <input style={input} placeholder="Teléfono" value={telefono} onChange={e => setTelefono(e.target.value)} />
+        {Object.keys(form).map(k => (
+          <input
+            key={k}
+            style={input}
+            placeholder={k}
+            value={form[k]}
+            onChange={(e) => setForm({ ...form, [k]: e.target.value })}
+          />
+        ))}
 
-        <button style={boton} onClick={agregarPaciente}>Guardar</button>
+        <button style={btn} onClick={agregarPaciente}>Guardar</button>
+
+        <h2>Lista</h2>
 
         {pacientes.map(p => (
           <div key={p.id} style={card}>
             <b>{p.nombre}</b>
             <p>{p.telefono}</p>
 
-            <button style={botonPeq} onClick={() => setPacienteSeleccionado(p)}>Expediente</button>
-            <button style={botonEliminar} onClick={() => eliminarPaciente(p.id)}>Eliminar</button>
+            <button onClick={() => setPacienteSeleccionado(p)}>Ver</button>
+            <button onClick={() => eliminarPaciente(p.id)}>Eliminar</button>
           </div>
         ))}
 
         {pacienteSeleccionado && (
-          <div style={cardGrande}>
-            <h3>Expediente: {pacienteSeleccionado.nombre}</h3>
+          <div style={card}>
+            <h3>Expediente</h3>
 
-            <textarea
-              style={input}
-              value={pacienteSeleccionado.notas}
-              onChange={(e) => {
-                const actualizado = pacientes.map(p =>
-                  p.id === pacienteSeleccionado.id
-                    ? { ...p, notas: e.target.value }
-                    : p
-                );
-                setPacientes(actualizado);
-                setPacienteSeleccionado({ ...pacienteSeleccionado, notas: e.target.value });
-              }}
-            />
+            {Object.entries(pacienteSeleccionado).map(([k, v]) => (
+              k !== "id" && <p key={k}><b>{k}:</b> {v}</p>
+            ))}
           </div>
         )}
       </div>
@@ -177,53 +171,47 @@ function App() {
   if (pagina === "citas") {
     return (
       <div style={container}>
-        <h2 style={titulo}>Citas</h2>
+        <button style={btn} onClick={() => setPagina("menu")}>⬅ Volver</button>
 
-        <button style={boton} onClick={() => setPagina("menu")}>⬅ Volver</button>
+        <h2>{nombreMes}</h2>
+
+        <button onClick={() => cambiarMes(-1)}>⬅</button>
+        <button onClick={() => cambiarMes(1)}>➡</button>
 
         <div>
-          {[...Array(30)].map((_, i) => (
-            <button key={i} style={diaBtn} onClick={() => setDiaSeleccionado(i + 1)}>
-              {i + 1}
-            </button>
-          ))}
+          {[...Array(diasEnMes)].map((_, i) => {
+            const fecha = `${fechaActual.getFullYear()}-${fechaActual.getMonth()+1}-${i+1}`;
+            return (
+              <button key={i} onClick={() => setFechaSeleccionada(fecha)}>
+                {i + 1}
+              </button>
+            );
+          })}
         </div>
 
-        {diaSeleccionado && (
+        {fechaSeleccionada && (
           <>
-            <h3>Día {diaSeleccionado}</h3>
+            <h3>{fechaSeleccionada}</h3>
 
-            <select style={input} onChange={(e) => {
+            <select onChange={(e) => {
               const p = pacientes.find(x => x.id === Number(e.target.value));
               setPacienteSeleccionado(p);
             }}>
-              <option>Seleccionar paciente</option>
+              <option>Paciente</option>
               {pacientes.map(p => (
                 <option key={p.id} value={p.id}>{p.nombre}</option>
               ))}
             </select>
 
-            <div style={{ display: "flex", flexWrap: "wrap" }}>
-              {horas.map(h => {
-                const ocupado = citas.some(c => c.dia === diaSeleccionado && c.hora === h);
-
-                return (
-                  <button
-                    key={h}
-                    style={{ ...horaBtn, background: ocupado ? "#ccc" : "#27ae60" }}
-                    disabled={ocupado}
-                    onClick={() => agendarCita(h)}
-                  >
-                    {h}
-                  </button>
-                );
-              })}
-            </div>
+            {horas.map(h => (
+              <button key={h} onClick={() => agendar(h)}>
+                {h}
+              </button>
+            ))}
 
             {citasDelDia.map(c => (
-              <div key={c.id} style={card}>
+              <div key={c.id}>
                 {c.hora} - {c.paciente}
-                <button style={botonEliminar} onClick={() => cancelarCita(c.id)}>Cancelar</button>
               </div>
             ))}
           </>
@@ -231,41 +219,11 @@ function App() {
       </div>
     );
   }
-
-  // CONFIGURACIÓN
-  if (pagina === "config") {
-    return (
-      <div style={container}>
-        <h2 style={titulo}>Configuración</h2>
-
-        <button style={boton} onClick={() => setPagina("menu")}>⬅ Volver</button>
-
-        <p>Hora inicio</p>
-        <input type="number" style={input} value={horaInicio} onChange={e => setHoraInicio(Number(e.target.value))} />
-
-        <p>Hora fin</p>
-        <input type="number" style={input} value={horaFin} onChange={e => setHoraFin(Number(e.target.value))} />
-
-        <p>Duración cita (minutos)</p>
-        <select style={input} value={duracion} onChange={e => setDuracion(Number(e.target.value))}>
-          <option value={30}>30 minutos</option>
-          <option value={60}>1 hora</option>
-        </select>
-      </div>
-    );
-  }
 }
 
-// ESTILOS
-const container = { padding: 20, fontFamily: "Segoe UI", background: "#f4f6f9", minHeight: "100vh" };
-const titulo = { fontSize: 26, marginBottom: 20 };
-const boton = { padding: 12, margin: "10px 0", background: "#2c7be5", color: "white", border: "none", borderRadius: 8, width: "100%" };
-const botonPeq = { marginRight: 10, padding: 6 };
-const botonEliminar = { background: "red", color: "white", padding: 6, border: "none" };
-const card = { background: "white", padding: 10, marginTop: 10, borderRadius: 8 };
-const cardGrande = { background: "white", padding: 15, marginTop: 20 };
-const input = { width: "100%", padding: 10, marginTop: 10 };
-const diaBtn = { margin: 5, padding: 10 };
-const horaBtn = { margin: 5, padding: 10, color: "white", border: "none", borderRadius: 6 };
+const container = { padding: 20, fontFamily: "Arial" };
+const btn = { padding: 10, margin: 5 };
+const input = { display: "block", margin: 5, padding: 8 };
+const card = { border: "1px solid #ccc", padding: 10, marginTop: 10 };
 
 export default App;
