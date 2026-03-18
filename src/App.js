@@ -141,11 +141,19 @@ function App() {
   if (pagina === "menu") {
     return (
       <div style={container}>
-        <h1>Consultorio Médico</h1>
+        <h1>🏥 Consultorio Médico</h1>
 
-        <button style={btn} onClick={() => setPagina("pacientes")}>Pacientes</button>
-        <button style={btn} onClick={() => setPagina("citas")}>Citas</button>
-        <button style={btn} onClick={() => setPagina("config")}>Configuración</button>
+        <button style={btn} onClick={() => setPagina("pacientes")}>
+          👤 Pacientes
+        </button>
+
+        <button style={btn} onClick={() => setPagina("citas")}>
+          📅 Citas Médicas
+        </button>
+
+        <button style={btn} onClick={() => setPagina("config")}>
+          ⚙️ Configuración
+        </button>
       </div>
     );
   }
@@ -156,31 +164,44 @@ function App() {
       <div style={container}>
         <button style={btn} onClick={() => setPagina("menu")}>⬅ Volver</button>
 
-        <h2>Agregar paciente</h2>
+        <h2>👤 Pacientes</h2>
 
-        <input style={input} placeholder="Nombre" value={form.nombre}
-          onChange={e => setForm({ ...form, nombre: e.target.value })} />
+        <input
+          style={input}
+          placeholder="Nombre"
+          value={form.nombre}
+          onChange={e => setForm({ ...form, nombre: e.target.value })}
+        />
 
-        <input style={input} placeholder="Teléfono" value={form.telefono}
-          onChange={e => setForm({ ...form, telefono: e.target.value })} />
+        <input
+          style={input}
+          placeholder="Teléfono"
+          value={form.telefono}
+          onChange={e => setForm({ ...form, telefono: e.target.value })}
+        />
 
         <button style={btn} onClick={agregarPaciente}>Guardar</button>
 
-        <h2>Lista</h2>
+        <h3>Lista</h3>
 
         {pacientes.map(p => (
           <div key={p.id} style={card}>
             <b>{p.nombre}</b>
             <p>{p.telefono}</p>
 
-            <button style={btnPeq} onClick={() => setPacienteSeleccionado(p)}>Expediente</button>
-            <button style={btnEliminar} onClick={() => eliminarPaciente(p.id)}>Eliminar</button>
+            <button style={btnPeq} onClick={() => setPacienteSeleccionado(p)}>
+              📋 Expediente
+            </button>
+
+            <button style={btnEliminar} onClick={() => eliminarPaciente(p.id)}>
+              ❌ Eliminar
+            </button>
           </div>
         ))}
 
         {pacienteSeleccionado && (
           <div style={cardGrande}>
-            <h3>{pacienteSeleccionado.nombre}</h3>
+            <h3>📋 Expediente</h3>
 
             {["edad","sexo","alergias","enfermedades","motivo"].map(campo => (
               <input
@@ -194,7 +215,7 @@ function App() {
 
             <textarea
               style={input}
-              placeholder="Notas"
+              placeholder="Notas médicas"
               value={pacienteSeleccionado.notas}
               onChange={(e) => actualizarPaciente("notas", e.target.value)}
             />
@@ -210,7 +231,9 @@ function App() {
       <div style={container}>
         <button style={btn} onClick={() => setPagina("menu")}>⬅ Volver</button>
 
-        <h2 style={{ textTransform: "capitalize" }}>{nombreMes}</h2>
+        <h2 style={{ textTransform: "capitalize" }}>
+          📅 {nombreMes}
+        </h2>
 
         <button onClick={() => cambiarMes(-1)}>⬅</button>
         <button onClick={() => cambiarMes(1)}>➡</button>
@@ -219,7 +242,11 @@ function App() {
           {[...Array(diasEnMes)].map((_, i) => {
             const fecha = `${fechaActual.getFullYear()}-${fechaActual.getMonth()+1}-${i+1}`;
             return (
-              <button key={i} style={diaBtn} onClick={() => setFechaSeleccionada(fecha)}>
+              <button
+                key={i}
+                style={diaBtn}
+                onClick={() => setFechaSeleccionada(fecha)}
+              >
                 {i + 1}
               </button>
             );
@@ -234,7 +261,7 @@ function App() {
               const p = pacientes.find(x => x.id === Number(e.target.value));
               setPacienteSeleccionado(p);
             }}>
-              <option>Paciente</option>
+              <option>Seleccionar paciente</option>
               {pacientes.map(p => (
                 <option key={p.id} value={p.id}>{p.nombre}</option>
               ))}
@@ -242,12 +269,17 @@ function App() {
 
             <div>
               {horas.map(h => {
-                const ocupado = citas.some(c => c.fecha === fechaSeleccionada && c.hora === h);
+                const ocupado = citas.some(
+                  c => c.fecha === fechaSeleccionada && c.hora === h
+                );
 
                 return (
                   <button
                     key={h}
-                    style={{ ...horaBtn, background: ocupado ? "#ccc" : "#2c7be5" }}
+                    style={{
+                      ...horaBtn,
+                      background: ocupado ? "#ccc" : "#2c7be5"
+                    }}
                     disabled={ocupado}
                     onClick={() => agendar(h)}
                   >
@@ -264,7 +296,7 @@ function App() {
                 {c.hora} - {c.paciente}
                 <br />
                 <button style={btnEliminar} onClick={() => cancelarCita(c.id)}>
-                  Cancelar
+                  ❌ Cancelar
                 </button>
               </div>
             ))}
@@ -280,39 +312,61 @@ function App() {
       <div style={container}>
         <button style={btn} onClick={() => setPagina("menu")}>⬅ Volver</button>
 
-        <h2>Configuración</h2>
+        <h2>⚙️ Configuración</h2>
 
         <label>Hora inicio</label>
         <input
           type="number"
+          style={input}
           value={config.inicio}
-          onChange={(e) => setConfig({ ...config, inicio: Number(e.target.value) })}
+          onChange={(e) =>
+            setConfig({ ...config, inicio: Number(e.target.value) })
+          }
         />
 
         <label>Hora fin</label>
         <input
           type="number"
+          style={input}
           value={config.fin}
-          onChange={(e) => setConfig({ ...config, fin: Number(e.target.value) })}
+          onChange={(e) =>
+            setConfig({ ...config, fin: Number(e.target.value) })
+          }
         />
       </div>
     );
   }
 }
 
-const container = { padding: 30, fontFamily: "Arial" };
+const container = {
+  padding: 30,
+  fontFamily: "Arial",
+  background: "#f5f7fb",
+  minHeight: "100vh"
+};
 
 const btn = {
-  padding: "12px 20px",
+  padding: "14px 22px",
   margin: "10px",
   background: "#2c7be5",
   color: "white",
   border: "none",
-  borderRadius: "8px"
+  borderRadius: "10px",
+  fontSize: "16px",
+  fontWeight: "bold",
+  cursor: "pointer",
+  boxShadow: "0 4px 10px rgba(0,0,0,0.1)"
 };
 
 const btnPeq = { marginRight: 10 };
-const btnEliminar = { background: "red", color: "white", marginTop: 5 };
+
+const btnEliminar = {
+  background: "red",
+  color: "white",
+  padding: "6px 10px",
+  border: "none",
+  marginTop: 5
+};
 
 const input = {
   display: "block",
@@ -325,22 +379,31 @@ const card = {
   border: "1px solid #ddd",
   padding: 10,
   marginTop: 10,
-  borderRadius: 8
+  borderRadius: 8,
+  background: "white"
 };
 
 const cardGrande = {
   border: "2px solid #2c7be5",
   padding: 20,
-  marginTop: 20
+  marginTop: 20,
+  borderRadius: 10,
+  background: "white"
 };
 
-const diaBtn = { margin: 5, padding: 10 };
+const diaBtn = {
+  margin: 5,
+  padding: 10,
+  borderRadius: 8,
+  border: "1px solid #ccc"
+};
 
 const horaBtn = {
   margin: 5,
   padding: 10,
   color: "white",
-  border: "none"
+  border: "none",
+  borderRadius: 8
 };
 
 export default App;
