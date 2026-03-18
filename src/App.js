@@ -85,7 +85,7 @@ function App() {
   if (pagina === "menu") {
     return (
       <div style={container}>
-        <h1>Consultorio Médico</h1>
+        <h1>Consultorio Médico V2</h1>
 
         <button style={boton} onClick={() => setPagina("pacientes")}>Pacientes</button>
         <button style={boton} onClick={() => setPagina("citas")}>Citas Médicas</button>
