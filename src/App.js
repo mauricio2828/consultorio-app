@@ -106,7 +106,6 @@ const toggleExpediente = (p)=>{
 
 // ================= CALENDARIO =================
 const diasSemana = ["L","M","M","J","V","S","D"];
-
 const diasEnMes = new Date(anio, mes+1, 0).getDate();
 const primerDia = (new Date(anio, mes, 1).getDay()+6)%7;
 
@@ -120,11 +119,11 @@ const citasFecha = (f)=> citas.filter(c=>c.fecha===f);
 const colorDia = (fecha)=>{
   const d = new Date(fecha);
 
-  if(d.toDateString() === hoy.toDateString()) return "#ffe082"; // hoy
-  if(!config.diasLaborales.includes(d.getDay())) return "#e0e0e0"; // no laboral
-  if(citasFecha(fecha).length >= horas.length) return "#ff8a80"; // lleno
-  if(citasFecha(fecha).length > 0) return "#a5d6a7"; // con citas
-  if(fechaSeleccionada === fecha) return "#90caf9"; // seleccionado
+  if(d.toDateString() === hoy.toDateString()) return "#ffe082";
+  if(!config.diasLaborales.includes(d.getDay())) return "#e0e0e0";
+  if(citasFecha(fecha).length >= horas.length) return "#ff8a80";
+  if(citasFecha(fecha).length > 0) return "#a5d6a7";
+  if(fechaSeleccionada === fecha) return "#90caf9";
 
   return "white";
 };
@@ -155,7 +154,7 @@ return(
 <div style={container}>
 
 {logo && (
-<img src={logo} alt="logo" style={{width:120, marginBottom:10}}/>
+<img src={logo} alt="logo" style={{width:120}}/>
 )}
 
 <h1>Consultorio Médico</h1>
@@ -163,6 +162,7 @@ return(
 <button style={btn} onClick={()=>setPagina("pacientes")}>👤 Pacientes</button>
 <button style={btn} onClick={()=>setPagina("calendario")}>📅 Calendario</button>
 <button style={btn} onClick={()=>setPagina("config")}>⚙️ Configuración</button>
+<button style={btn} onClick={()=>setPagina("stats")}>📊 Estadísticas</button>
 
 </div>
 );
@@ -218,7 +218,6 @@ onChange={(e)=>setFormPaciente({...formPaciente,notas:e.target.value})}
 {pacientes.map(p=>(
 <div key={p.id} style={card}>
 <b>{p.nombre}</b>
-
 <button onClick={()=>toggleExpediente(p)}>Expediente</button>
 
 {pacienteSeleccionado?.id===p.id && (
@@ -354,6 +353,25 @@ setConfig({...config,diasLaborales:[...config.diasLaborales,i]});
 );
 }
 
+// ================= ESTADISTICAS =================
+if(pagina==="stats"){
+const totalCitas = citas.length;
+const totalPacientes = pacientes.length;
+
+return(
+<div style={container}>
+<button style={btn} onClick={()=>setPagina("menu")}>⬅ Regresar</button>
+
+<h2>Estadísticas</h2>
+
+<p>Total Pacientes: {totalPacientes}</p>
+<p>Total Citas: {totalCitas}</p>
+
+</div>
+);
+}
+
+return null;
 }
 
 const container={padding:30,fontFamily:"Arial"};
