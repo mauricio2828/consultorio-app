@@ -1,6 +1,5 @@
 /* eslint-disable */
 import { useState, useEffect } from "react";
-import * as XLSX from "xlsx";
 import "./App.css";
 
 function App() {
@@ -11,11 +10,11 @@ function App() {
   const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
   const [fechaActual, setFechaActual] = useState(new Date());
   const [fechaSeleccionada, setFechaSeleccionada] = useState(null);
-  const [logo, setLogo] = useState(null);
 
   const [config, setConfig] = useState({
     inicio: 9,
-    fin: 18
+    fin: 18,
+    diasLaborales: [1,2,3,4,5]
   });
 
   const [form, setForm] = useState({
@@ -28,12 +27,10 @@ function App() {
     const p = localStorage.getItem("pacientes");
     const c = localStorage.getItem("citas");
     const conf = localStorage.getItem("config");
-    const l = localStorage.getItem("logo");
 
     if (p) setPacientes(JSON.parse(p));
     if (c) setCitas(JSON.parse(c));
     if (conf) setConfig(JSON.parse(conf));
-    if (l) setLogo(l);
   }, []);
 
   // GUARDAR
@@ -51,7 +48,7 @@ function App() {
 
   // PACIENTES
   const agregarPaciente = () => {
-    if (!form.nombre || !form.telefono) return alert("Completa datos");
+    if (!form.nombre || !form.telefono) return;
 
     const nuevo = {
       id: Date.now(),
@@ -68,11 +65,9 @@ function App() {
   };
 
   const togglePaciente = (p) => {
-    if (pacienteSeleccionado && pacienteSeleccionado.id === p.id) {
-      setPacienteSeleccionado(null);
-    } else {
-      setPacienteSeleccionado(p);
-    }
+    setPacienteSeleccionado(
+      pacienteSeleccionado?.id === p.id ? null : p
+    );
   };
 
   // CALENDARIO
@@ -90,18 +85,34 @@ function App() {
 
   const hoy = new Date();
 
-  const esHoy = (dia) => {
-    return (
-      dia === hoy.getDate() &&
-      fechaActual.getMonth() === hoy.getMonth() &&
-      fechaActual.getFullYear() === hoy.getFullYear()
-    );
-  };
+  const esHoy = (dia) =>
+    dia === hoy.getDate() &&
+    fechaActual.getMonth() === hoy.getMonth() &&
+    fechaActual.getFullYear() === hoy.getFullYear();
 
   const nombreMes = fechaActual.toLocaleString("es-MX", {
     month: "long",
     year: "numeric"
   });
+
+  const diasSemana = ["D","L","M","M","J","V","S"];
+
+  const esLaboral = (fecha) => {
+    const d = new Date(fecha).getDay();
+    return config.diasLaborales.includes(d);
+  };
+
+  const citasEnFecha = (fecha) => {
+    return citas.filter(c => c.fecha === fecha);
+  };
+
+  const diaLleno = (fecha) => {
+    return citasEnFecha(fecha).length >= horas.length;
+  };
+
+  const tieneCitas = (fecha) => {
+    return citas.some(c => c.fecha === fecha);
+  };
 
   // HORAS
   const horas = [];
@@ -113,77 +124,56 @@ function App() {
 
   // CITAS
   const agendar = (hora) => {
-    if (!pacienteSeleccionado || !fechaSeleccionada)
-      return alert("Selecciona paciente y fecha");
+    if (!pacienteSeleccionado || !fechaSeleccionada) return;
+
+    if (!esLaboral(fechaSeleccionada)) {
+      alert("Día no laboral");
+      return;
+    }
 
     const existe = citas.some(
       c => c.fecha === fechaSeleccionada && c.hora === hora
     );
 
-    if (existe) return alert("Horario ocupado");
+    if (existe) return;
 
-    const nueva = {
-      id: Date.now(),
-      fecha: fechaSeleccionada,
-      hora,
-      paciente: pacienteSeleccionado.nombre,
-      estado: "programada"
-    };
-
-    setCitas([...citas, nueva]);
-  };
-
-  const cambiarEstado = (id, estado) => {
-    setCitas(citas.map(c => c.id === id ? { ...c, estado } : c));
+    setCitas([
+      ...citas,
+      {
+        id: Date.now(),
+        fecha: fechaSeleccionada,
+        hora,
+        paciente: pacienteSeleccionado.nombre
+      }
+    ]);
   };
 
   const citasDelDia = citas.filter(c => c.fecha === fechaSeleccionada);
 
-  // EXPORTAR EXCEL
-  const exportarExcel = () => {
-    const data = citasDelDia.map(c => ({
-      Hora: c.hora,
-      Paciente: c.paciente,
-      Estado: c.estado
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Agenda");
-
-    XLSX.writeFile(wb, `Agenda_${fechaSeleccionada}.xlsx`);
+  // CONFIG DIAS
+  const toggleDia = (dia) => {
+    if (config.diasLaborales.includes(dia)) {
+      setConfig({
+        ...config,
+        diasLaborales: config.diasLaborales.filter(d => d !== dia)
+      });
+    } else {
+      setConfig({
+        ...config,
+        diasLaborales: [...config.diasLaborales, dia]
+      });
+    }
   };
-
-  // LOGO
-  const cambiarLogo = (e) => {
-    const file = e.target.files[0];
-    const reader = new FileReader();
-
-    reader.onloadend = () => {
-      localStorage.setItem("logo", reader.result);
-      setLogo(reader.result);
-    };
-
-    reader.readAsDataURL(file);
-  };
-
-  // ESTADÍSTICAS
-  const total = citas.length;
-  const asistio = citas.filter(c => c.estado === "asistio").length;
-  const canceladas = citas.filter(c => c.estado === "cancelada").length;
 
   // MENU
   if (pagina === "menu") {
     return (
       <div style={container}>
-        {logo && <img src={logo} alt="logo" style={{ width: 100 }} />}
-
         <h1>🏥 Consultorio Médico</h1>
 
         <button style={btn} onClick={() => setPagina("pacientes")}>👤 Pacientes</button>
         <button style={btn} onClick={() => setPagina("citas")}>📅 Citas</button>
         <button style={btn} onClick={() => setPagina("config")}>⚙️ Configuración</button>
-        <button style={btn} onClick={() => setPagina("stats")}>📊 Estadísticas</button>
       </div>
     );
   }
@@ -194,16 +184,14 @@ function App() {
       <div style={container}>
         <button style={btn} onClick={() => setPagina("menu")}>⬅</button>
 
-        <h2>Pacientes</h2>
-
-        <input style={input} placeholder="Nombre"
+        <input placeholder="Nombre" style={input}
           value={form.nombre}
-          onChange={e => setForm({ ...form, nombre: e.target.value })}
+          onChange={e => setForm({...form, nombre:e.target.value})}
         />
 
-        <input style={input} placeholder="Teléfono"
+        <input placeholder="Teléfono" style={input}
           value={form.telefono}
-          onChange={e => setForm({ ...form, telefono: e.target.value })}
+          onChange={e => setForm({...form, telefono:e.target.value})}
         />
 
         <button style={btn} onClick={agregarPaciente}>Guardar</button>
@@ -213,25 +201,18 @@ function App() {
             <b>{p.nombre}</b>
             <p>{p.telefono}</p>
 
-            <button style={btnPeq} onClick={() => togglePaciente(p)}>
-              📋 Expediente
-            </button>
+            <button onClick={() => togglePaciente(p)}>📋</button>
+            <button style={btnEliminar} onClick={() => eliminarPaciente(p.id)}>❌</button>
 
-            <button style={btnEliminar} onClick={() => eliminarPaciente(p.id)}>
-              ❌
-            </button>
-
-            {pacienteSeleccionado && pacienteSeleccionado.id === p.id && (
+            {pacienteSeleccionado?.id === p.id && (
               <textarea
                 style={input}
-                placeholder="Notas"
-                value={pacienteSeleccionado.notas}
-                onChange={(e) => {
-                  const actualizado = pacientes.map(x =>
-                    x.id === p.id ? { ...x, notas: e.target.value } : x
+                value={p.notas}
+                onChange={(e)=>{
+                  const updated = pacientes.map(x =>
+                    x.id===p.id ? {...x, notas:e.target.value} : x
                   );
-                  setPacientes(actualizado);
-                  setPacienteSeleccionado({ ...p, notas: e.target.value });
+                  setPacientes(updated);
                 }}
               />
             )}
@@ -247,25 +228,46 @@ function App() {
       <div style={container}>
         <button style={btn} onClick={() => setPagina("menu")}>⬅</button>
 
-        <h2>📅 {nombreMes}</h2>
+        <h2>{nombreMes}</h2>
 
         <button onClick={() => cambiarMes(-1)}>⬅</button>
         <button onClick={() => cambiarMes(1)}>➡</button>
 
-        <div>
+        {/* LEYENDA */}
+        <div style={{marginTop:10}}>
+          <span style={{background:"#2c7be5", color:"white", padding:"5px"}}>Hoy</span>
+          <span style={{background:"#28a745", color:"white", padding:"5px", marginLeft:5}}>Con citas</span>
+          <span style={{background:"#ff0000", color:"white", padding:"5px", marginLeft:5}}>Lleno</span>
+          <span style={{background:"#ccc", padding:"5px", marginLeft:5}}>No laboral</span>
+        </div>
+
+        {/* DIAS SEMANA */}
+        <div style={{display:"grid", gridTemplateColumns:"repeat(7,1fr)", marginTop:10}}>
+          {diasSemana.map(d => (
+            <div key={d} style={{textAlign:"center", fontWeight:"bold"}}>{d}</div>
+          ))}
+        </div>
+
+        {/* CALENDARIO */}
+        <div style={{display:"grid", gridTemplateColumns:"repeat(7,1fr)"}}>
           {[...Array(diasEnMes)].map((_, i) => {
-            const fecha = `${fechaActual.getFullYear()}-${fechaActual.getMonth()+1}-${i+1}`;
+            const dia = i+1;
+            const fecha = `${fechaActual.getFullYear()}-${fechaActual.getMonth()+1}-${dia}`;
+
+            let bg = "white";
+
+            if (!esLaboral(fecha)) bg = "#ccc";
+            else if (diaLleno(fecha)) bg = "#ff0000";
+            else if (tieneCitas(fecha)) bg = "#28a745";
+            if (esHoy(dia)) bg = "#2c7be5";
+
             return (
               <button
                 key={i}
-                style={{
-                  ...diaBtn,
-                  background: esHoy(i+1) ? "#2c7be5" : "white",
-                  color: esHoy(i+1) ? "white" : "black"
-                }}
+                style={{margin:3, padding:10, background:bg, color:"white"}}
                 onClick={() => setFechaSeleccionada(fecha)}
               >
-                {i + 1}
+                {dia}
               </button>
             );
           })}
@@ -275,52 +277,29 @@ function App() {
           <>
             <h3>{fechaSeleccionada}</h3>
 
-            <select onChange={(e) => {
+            <select onChange={(e)=>{
               const p = pacientes.find(x => x.id === Number(e.target.value));
               setPacienteSeleccionado(p);
             }}>
               <option>Paciente</option>
-              {pacientes.map(p => (
+              {pacientes.map(p=>(
                 <option key={p.id} value={p.id}>{p.nombre}</option>
               ))}
             </select>
 
             <div>
-              {horas.map(h => {
-                const ocupado = citas.some(
-                  c => c.fecha === fechaSeleccionada && c.hora === h
-                );
-
+              {horas.map(h=>{
+                const ocupado = citas.some(c=>c.fecha===fechaSeleccionada && c.hora===h);
                 return (
-                  <button
-                    key={h}
-                    style={{
-                      ...horaBtn,
-                      background: ocupado ? "#ccc" : "#2c7be5"
-                    }}
-                    disabled={ocupado}
-                    onClick={() => agendar(h)}
-                  >
+                  <button key={h} disabled={ocupado} onClick={()=>agendar(h)}>
                     {h}
                   </button>
                 );
               })}
             </div>
 
-            <button style={btn} onClick={exportarExcel}>
-              📥 Exportar Excel
-            </button>
-
-            {citasDelDia.map(c => (
-              <div key={c.id} style={card}>
-                {c.hora} - {c.paciente}
-
-                <select onChange={(e) => cambiarEstado(c.id, e.target.value)}>
-                  <option value="programada">Programada</option>
-                  <option value="asistio">Asistió</option>
-                  <option value="cancelada">Cancelada</option>
-                </select>
-              </div>
+            {citasDelDia.map(c=>(
+              <div key={c.id}>{c.hora} - {c.paciente}</div>
             ))}
           </>
         )}
@@ -332,52 +311,30 @@ function App() {
   if (pagina === "config") {
     return (
       <div style={container}>
-        <button style={btn} onClick={() => setPagina("menu")}>⬅</button>
+        <button style={btn} onClick={()=>setPagina("menu")}>⬅</button>
 
-        <h2>Configuración</h2>
+        <h2>Días laborales</h2>
 
-        <label>Logo</label>
-        <input type="file" onChange={cambiarLogo} />
-
-        <label>Hora inicio</label>
-        <input type="number" style={input}
-          value={config.inicio}
-          onChange={(e) => setConfig({ ...config, inicio: Number(e.target.value) })}
-        />
-
-        <label>Hora fin</label>
-        <input type="number" style={input}
-          value={config.fin}
-          onChange={(e) => setConfig({ ...config, fin: Number(e.target.value) })}
-        />
+        {["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"].map((d,i)=>(
+          <label key={i}>
+            <input
+              type="checkbox"
+              checked={config.diasLaborales.includes(i)}
+              onChange={()=>toggleDia(i)}
+            />
+            {d}
+          </label>
+        ))}
       </div>
     );
   }
 
-  // STATS
-  if (pagina === "stats") {
-    return (
-      <div style={container}>
-        <button style={btn} onClick={() => setPagina("menu")}>⬅</button>
-
-        <h2>Estadísticas</h2>
-
-        <p>Total citas: {total}</p>
-        <p>Asistieron: {asistio}</p>
-        <p>Canceladas: {canceladas}</p>
-      </div>
-    );
-  }
 }
 
-// ESTILOS
-const container = { padding: 30, fontFamily: "Arial", background: "#f5f7fb", minHeight: "100vh" };
-const btn = { padding: "14px 22px", margin: "10px", background: "#2c7be5", color: "white", border: "none", borderRadius: "10px" };
-const btnPeq = { marginRight: 10 };
-const btnEliminar = { background: "red", color: "white", padding: "6px 10px", border: "none" };
-const input = { display: "block", margin: "5px 0", padding: "8px", width: "100%" };
-const card = { border: "1px solid #ddd", padding: 10, marginTop: 10, borderRadius: 8, background: "white" };
-const diaBtn = { margin: 5, padding: 10, borderRadius: 8, border: "1px solid #ccc" };
-const horaBtn = { margin: 5, padding: 10, color: "white", border: "none", borderRadius: 8 };
+const container = { padding:30, fontFamily:"Arial" };
+const btn = { padding:"10px", margin:"5px", background:"#2c7be5", color:"white", border:"none", borderRadius:8 };
+const input = { display:"block", margin:"5px 0", padding:8 };
+const card = { border:"1px solid #ddd", padding:10, marginTop:10 };
+const btnEliminar = { background:"red", color:"white", border:"none" };
 
 export default App;
