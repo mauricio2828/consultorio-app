@@ -8,7 +8,6 @@ const hoy = new Date();
 const [pagina, setPagina] = useState("menu");
 const [pacientes, setPacientes] = useState([]);
 const [citas, setCitas] = useState([]);
-const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
 const [expedienteAbierto, setExpedienteAbierto] = useState(null);
 
 const [mes, setMes] = useState(hoy.getMonth());
@@ -33,7 +32,7 @@ const [formPaciente, setFormPaciente] = useState({
   notas:""
 });
 
-// ===== LOCAL STORAGE SEGURO =====
+// ===== LOCAL STORAGE =====
 useEffect(()=>{
   try{
     const p = JSON.parse(localStorage.getItem("pacientes")) || [];
@@ -109,33 +108,16 @@ const colorDia = (fecha)=>{
     const partes = fecha.split("-");
     const d = new Date(partes[0], partes[1]-1, partes[2]);
 
-    if(d.toDateString() === hoy.toDateString()) return "#ffe082"; // HOY
-    if(!config.diasLaborales.includes(d.getDay())) return "#ffcdd2"; // NO LABORAL ROJO
-    if(citasFecha(fecha).length >= horas.length) return "#ff8a80"; // LLENO
-    if(citasFecha(fecha).length > 0) return "#a5d6a7"; // OCUPADO
-    if(fechaSeleccionada === fecha) return "#90caf9"; // SELECCIONADO
+    if(d.toDateString() === hoy.toDateString()) return "#ffe082";
+    if(!config.diasLaborales.includes(d.getDay())) return "#ffcdd2";
+    if(citasFecha(fecha).length >= horas.length) return "#ff8a80";
+    if(citasFecha(fecha).length > 0) return "#a5d6a7";
+    if(fechaSeleccionada === fecha) return "#90caf9";
 
     return "white";
   }catch{
     return "white";
   }
-};
-
-const agendar = (hora)=>{
-  if(!pacienteSeleccionado || !fechaSeleccionada) return;
-
-  const existe = citas.some(
-    c => c.fecha === fechaSeleccionada && c.hora === hora
-  );
-
-  if(existe) return;
-
-  setCitas([...citas,{
-    id: Date.now(),
-    fecha: fechaSeleccionada,
-    hora,
-    paciente: pacienteSeleccionado.nombre
-  }]);
 };
 
 // ===== PAGINAS =====
