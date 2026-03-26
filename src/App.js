@@ -38,11 +38,13 @@ useEffect(()=>{
   try{
     const p = JSON.parse(localStorage.getItem("pacientes")) || [];
     const c = JSON.parse(localStorage.getItem("citas")) || [];
-    const conf = JSON.parse(localStorage.getItem("config")) || config;
+    const conf = JSON.parse(localStorage.getItem("config")) || {
+      inicio:9, fin:18, diasLaborales:[1,2,3,4,5]
+    };
     const l = localStorage.getItem("logo");
 
-    setPacientes(p);
-    setCitas(c);
+    setPacientes(Array.isArray(p) ? p : []);
+    setCitas(Array.isArray(c) ? c : []);
     setConfig(conf);
     if(l) setLogo(l);
   }catch{
@@ -85,11 +87,7 @@ const guardarPaciente = ()=>{
 };
 
 const toggleExpediente = (id)=>{
-  if(expedienteAbierto === id){
-    setExpedienteAbierto(null);
-  }else{
-    setExpedienteAbierto(id);
-  }
+  setExpedienteAbierto(expedienteAbierto === id ? null : id);
 };
 
 // ===== CALENDARIO =====
@@ -103,7 +101,6 @@ for(let h=config.inicio; h<=config.fin; h++){
 }
 
 const citasFecha = (fecha)=>{
-  if(!citas) return [];
   return citas.filter(c=>c.fecha === fecha);
 };
 
@@ -112,11 +109,11 @@ const colorDia = (fecha)=>{
     const partes = fecha.split("-");
     const d = new Date(partes[0], partes[1]-1, partes[2]);
 
-    if(d.toDateString() === hoy.toDateString()) return "#ffe082";
-    if(!config.diasLaborales || !config.diasLaborales.includes(d.getDay())) return "#e0e0e0";
-    if(citasFecha(fecha).length >= horas.length) return "#ff8a80";
-    if(citasFecha(fecha).length > 0) return "#a5d6a7";
-    if(fechaSeleccionada === fecha) return "#90caf9";
+    if(d.toDateString() === hoy.toDateString()) return "#ffe082"; // HOY
+    if(!config.diasLaborales.includes(d.getDay())) return "#ffcdd2"; // NO LABORAL ROJO
+    if(citasFecha(fecha).length >= horas.length) return "#ff8a80"; // LLENO
+    if(citasFecha(fecha).length > 0) return "#a5d6a7"; // OCUPADO
+    if(fechaSeleccionada === fecha) return "#90caf9"; // SELECCIONADO
 
     return "white";
   }catch{
@@ -190,12 +187,13 @@ function Pacientes(){
 
       {pacientes.map(p=>(
         <div key={p.id} style={card}>
-          <b>{p.nombre}</b>
+          <b>{p.nombre}</b> - {p.telefono}
+
+          <br />
           <button onClick={()=>toggleExpediente(p.id)}>Expediente</button>
 
           {expedienteAbierto === p.id && (
             <div style={expediente}>
-              <p>Tel: {p.telefono}</p>
               <p>Edad: {p.edad}</p>
               <p>Notas: {p.notas}</p>
             </div>
@@ -225,7 +223,7 @@ function Citas(){
       </select>
 
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)"}}>
-        {diasSemana.map(d=><div key={d}>{d}</div>)}
+        {diasSemana.map((d,i)=><div key={i}>{d}</div>)}
       </div>
 
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)"}}>
