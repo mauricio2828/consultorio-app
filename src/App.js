@@ -4,12 +4,13 @@ import "./App.css";
 
 function App() {
 
+const hoy = new Date();
+
 const [pagina, setPagina] = useState("menu");
 const [pacientes, setPacientes] = useState([]);
 const [citas, setCitas] = useState([]);
 const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
-
-const hoy = new Date();
+const [editando, setEditando] = useState(false);
 
 const [mes, setMes] = useState(hoy.getMonth());
 const [anio, setAnio] = useState(hoy.getFullYear());
@@ -80,10 +81,18 @@ const cambiarLogo = (e)=>{
 const guardarPaciente = ()=>{
   if(!formPaciente.nombre) return;
 
-  setPacientes([
-    ...pacientes,
-    { id: Date.now(), ...formPaciente }
-  ]);
+  if(editando){
+    setPacientes(pacientes.map(p =>
+      p.id === pacienteSeleccionado.id ? {...formPaciente, id:p.id} : p
+    ));
+    setEditando(false);
+    setPacienteSeleccionado(null);
+  }else{
+    setPacientes([
+      ...pacientes,
+      { id: Date.now(), ...formPaciente }
+    ]);
+  }
 
   setFormPaciente({
     nombre:"",
@@ -94,6 +103,12 @@ const guardarPaciente = ()=>{
     alergias:"",
     notas:""
   });
+};
+
+const editarPaciente = (p)=>{
+  setPacienteSeleccionado(p);
+  setFormPaciente(p);
+  setEditando(true);
 };
 
 const toggleExpediente = (p)=>{
@@ -152,15 +167,11 @@ const agendar = (hora)=>{
 if(pagina==="menu"){
 return(
 <div style={container}>
-
-{logo && (
-<img src={logo} alt="logo" style={{width:120}}/>
-)}
-
+{logo && <img src={logo} alt="logo" style={{width:120}}/>}
 <h1>Consultorio Médico</h1>
 
 <button style={btn} onClick={()=>setPagina("pacientes")}>👤 Pacientes</button>
-<button style={btn} onClick={()=>setPagina("calendario")}>📅 Calendario</button>
+<button style={btn} onClick={()=>setPagina("citas")}>📅 Citas</button>
 <button style={btn} onClick={()=>setPagina("config")}>⚙️ Configuración</button>
 <button style={btn} onClick={()=>setPagina("stats")}>📊 Estadísticas</button>
 
@@ -174,7 +185,7 @@ return(
 <div style={container}>
 <button style={btn} onClick={()=>setPagina("menu")}>⬅ Regresar</button>
 
-<h2>Nuevo Paciente</h2>
+<h2>{editando ? "Editar Paciente" : "Nuevo Paciente"}</h2>
 
 <input style={input} placeholder="Nombre"
 value={formPaciente.nombre}
@@ -211,7 +222,9 @@ value={formPaciente.notas}
 onChange={(e)=>setFormPaciente({...formPaciente,notas:e.target.value})}
 />
 
-<button style={btn} onClick={guardarPaciente}>Guardar Paciente</button>
+<button style={btn} onClick={guardarPaciente}>
+{editando ? "Actualizar Paciente" : "Guardar Paciente"}
+</button>
 
 <h2>Pacientes</h2>
 
@@ -219,6 +232,7 @@ onChange={(e)=>setFormPaciente({...formPaciente,notas:e.target.value})}
 <div key={p.id} style={card}>
 <b>{p.nombre}</b>
 <button onClick={()=>toggleExpediente(p)}>Expediente</button>
+<button onClick={()=>editarPaciente(p)}>Editar</button>
 
 {pacienteSeleccionado?.id===p.id && (
 <div style={expediente}>
@@ -237,13 +251,13 @@ onChange={(e)=>setFormPaciente({...formPaciente,notas:e.target.value})}
 );
 }
 
-// ================= CALENDARIO =================
-if(pagina==="calendario"){
+// ================= CITAS =================
+if(pagina==="citas"){
 return(
 <div style={container}>
 <button style={btn} onClick={()=>setPagina("menu")}>⬅ Regresar</button>
 
-<h2>Calendario</h2>
+<h2>Citas</h2>
 
 <select value={mes} onChange={(e)=>setMes(Number(e.target.value))}>
 {["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"].map((m,i)=>(
@@ -278,8 +292,6 @@ onClick={()=>setFechaSeleccionada(fecha)}
 );
 })}
 </div>
-
-<p>🟡 Hoy | 🔵 Seleccionado | 🟢 Con citas | 🔴 Lleno | ⚪ Disponible | ⚫ No laboral</p>
 
 {fechaSeleccionada && (
 <div>
@@ -355,17 +367,13 @@ setConfig({...config,diasLaborales:[...config.diasLaborales,i]});
 
 // ================= ESTADISTICAS =================
 if(pagina==="stats"){
-const totalCitas = citas.length;
-const totalPacientes = pacientes.length;
-
 return(
 <div style={container}>
 <button style={btn} onClick={()=>setPagina("menu")}>⬅ Regresar</button>
 
 <h2>Estadísticas</h2>
-
-<p>Total Pacientes: {totalPacientes}</p>
-<p>Total Citas: {totalCitas}</p>
+<p>Total Pacientes: {pacientes.length}</p>
+<p>Total Citas: {citas.length}</p>
 
 </div>
 );
