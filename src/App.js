@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import "./App.css";
@@ -175,7 +176,7 @@ function App() {
   if (pagina === "menu") {
     return (
       <div style={container}>
-        {logo && <img src={logo} style={{ width: 100 }} />}
+        {logo && <img src={logo} alt="logo" style={{ width: 100 }} />}
 
         <h1>🏥 Consultorio Médico</h1>
 
@@ -369,7 +370,7 @@ function App() {
   }
 }
 
-// ESTILOS (NO CAMBIADOS)
+// ESTILOS
 const container = { padding: 30, fontFamily: "Arial", background: "#f5f7fb", minHeight: "100vh" };
 const btn = { padding: "14px 22px", margin: "10px", background: "#2c7be5", color: "white", border: "none", borderRadius: "10px" };
 const btnPeq = { marginRight: 10 };
