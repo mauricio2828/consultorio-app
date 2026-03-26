@@ -1,4 +1,3 @@
-/* eslint-disable */
 import { useState, useEffect } from "react";
 import "./App.css";
 
@@ -10,11 +9,10 @@ const [pagina, setPagina] = useState("menu");
 const [pacientes, setPacientes] = useState([]);
 const [citas, setCitas] = useState([]);
 const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
-const [editando, setEditando] = useState(false);
 
 const [mes, setMes] = useState(hoy.getMonth());
 const [anio, setAnio] = useState(hoy.getFullYear());
-const [fechaSeleccionada, setFechaSeleccionada] = useState(null);
+const [fechaSeleccionada, setFechaSeleccionada] = useState("");
 
 const [logo, setLogo] = useState(null);
 
@@ -34,7 +32,7 @@ const [formPaciente, setFormPaciente] = useState({
   notas:""
 });
 
-// ================= LOCAL STORAGE =================
+// ===== LOCAL STORAGE =====
 useEffect(()=>{
   const p = localStorage.getItem("pacientes");
   const c = localStorage.getItem("citas");
@@ -47,52 +45,28 @@ useEffect(()=>{
   if(l) setLogo(l);
 },[]);
 
-useEffect(()=>{
-  localStorage.setItem("pacientes", JSON.stringify(pacientes));
-},[pacientes]);
+useEffect(()=>{localStorage.setItem("pacientes",JSON.stringify(pacientes));},[pacientes]);
+useEffect(()=>{localStorage.setItem("citas",JSON.stringify(citas));},[citas]);
+useEffect(()=>{localStorage.setItem("config",JSON.stringify(config));},[config]);
+useEffect(()=>{if(logo)localStorage.setItem("logo",logo);},[logo]);
 
-useEffect(()=>{
-  localStorage.setItem("citas", JSON.stringify(citas));
-},[citas]);
-
-useEffect(()=>{
-  localStorage.setItem("config", JSON.stringify(config));
-},[config]);
-
-useEffect(()=>{
-  if(logo){
-    localStorage.setItem("logo", logo);
-  }
-},[logo]);
-
-// ================= LOGO =================
+// ===== LOGO =====
 const cambiarLogo = (e)=>{
-  const archivo = e.target.files[0];
-  if(!archivo) return;
-
+  const file = e.target.files[0];
+  if(!file) return;
   const reader = new FileReader();
-  reader.onload = function(event){
-    setLogo(event.target.result);
-  };
-  reader.readAsDataURL(archivo);
+  reader.onload = (ev)=> setLogo(ev.target.result);
+  reader.readAsDataURL(file);
 };
 
-// ================= PACIENTES =================
+// ===== PACIENTES =====
 const guardarPaciente = ()=>{
   if(!formPaciente.nombre) return;
 
-  if(editando){
-    setPacientes(pacientes.map(p =>
-      p.id === pacienteSeleccionado.id ? {...formPaciente, id:p.id} : p
-    ));
-    setEditando(false);
-    setPacienteSeleccionado(null);
-  }else{
-    setPacientes([
-      ...pacientes,
-      { id: Date.now(), ...formPaciente }
-    ]);
-  }
+  setPacientes([...pacientes,{
+    id: Date.now(),
+    ...formPaciente
+  }]);
 
   setFormPaciente({
     nombre:"",
@@ -105,21 +79,7 @@ const guardarPaciente = ()=>{
   });
 };
 
-const editarPaciente = (p)=>{
-  setPacienteSeleccionado(p);
-  setFormPaciente(p);
-  setEditando(true);
-};
-
-const toggleExpediente = (p)=>{
-  if(pacienteSeleccionado?.id === p.id){
-    setPacienteSeleccionado(null);
-  }else{
-    setPacienteSeleccionado(p);
-  }
-};
-
-// ================= CALENDARIO =================
+// ===== CALENDARIO =====
 const diasSemana = ["L","M","M","J","V","S","D"];
 const diasEnMes = new Date(anio, mes+1, 0).getDate();
 const primerDia = (new Date(anio, mes, 1).getDay()+6)%7;
@@ -129,7 +89,9 @@ for(let h=config.inicio; h<=config.fin; h++){
   horas.push(h+":00");
 }
 
-const citasFecha = (f)=> citas.filter(c=>c.fecha===f);
+const citasFecha = (fecha)=>{
+  return citas.filter(c=>c.fecha === fecha);
+};
 
 const colorDia = (fecha)=>{
   const d = new Date(fecha);
@@ -147,45 +109,41 @@ const agendar = (hora)=>{
   if(!pacienteSeleccionado || !fechaSeleccionada) return;
 
   const existe = citas.some(
-    c=>c.fecha===fechaSeleccionada && c.hora===hora
+    c => c.fecha === fechaSeleccionada && c.hora === hora
   );
 
   if(existe) return;
 
-  setCitas([
-    ...citas,
-    {
-      id: Date.now(),
-      fecha: fechaSeleccionada,
-      hora,
-      paciente: pacienteSeleccionado.nombre
-    }
-  ]);
+  setCitas([...citas,{
+    id: Date.now(),
+    fecha: fechaSeleccionada,
+    hora,
+    paciente: pacienteSeleccionado.nombre
+  }]);
 };
 
-// ================= MENU =================
+// ===== MENU =====
 if(pagina==="menu"){
 return(
 <div style={container}>
-{logo && <img src={logo} alt="logo" style={{width:120}}/>}
+{logo && <img src={logo} alt="logo" style={{width:120}} />}
 <h1>Consultorio Médico</h1>
 
 <button style={btn} onClick={()=>setPagina("pacientes")}>👤 Pacientes</button>
 <button style={btn} onClick={()=>setPagina("citas")}>📅 Citas</button>
 <button style={btn} onClick={()=>setPagina("config")}>⚙️ Configuración</button>
 <button style={btn} onClick={()=>setPagina("stats")}>📊 Estadísticas</button>
-
 </div>
 );
 }
 
-// ================= PACIENTES =================
+// ===== PACIENTES =====
 if(pagina==="pacientes"){
 return(
 <div style={container}>
-<button style={btn} onClick={()=>setPagina("menu")}>⬅ Regresar</button>
+<button style={btn} onClick={()=>setPagina("menu")}>Regresar</button>
 
-<h2>{editando ? "Editar Paciente" : "Nuevo Paciente"}</h2>
+<h2>Nuevo Paciente</h2>
 
 <input style={input} placeholder="Nombre"
 value={formPaciente.nombre}
@@ -202,48 +160,17 @@ value={formPaciente.edad}
 onChange={(e)=>setFormPaciente({...formPaciente,edad:e.target.value})}
 />
 
-<input style={input} placeholder="Dirección"
-value={formPaciente.direccion}
-onChange={(e)=>setFormPaciente({...formPaciente,direccion:e.target.value})}
-/>
-
-<input style={input} placeholder="Padecimiento"
-value={formPaciente.padecimiento}
-onChange={(e)=>setFormPaciente({...formPaciente,padecimiento:e.target.value})}
-/>
-
-<input style={input} placeholder="Alergias"
-value={formPaciente.alergias}
-onChange={(e)=>setFormPaciente({...formPaciente,alergias:e.target.value})}
-/>
-
 <textarea style={input} placeholder="Notas"
 value={formPaciente.notas}
 onChange={(e)=>setFormPaciente({...formPaciente,notas:e.target.value})}
 />
 
-<button style={btn} onClick={guardarPaciente}>
-{editando ? "Actualizar Paciente" : "Guardar Paciente"}
-</button>
+<button style={btn} onClick={guardarPaciente}>Guardar</button>
 
-<h2>Pacientes</h2>
-
+<h2>Lista Pacientes</h2>
 {pacientes.map(p=>(
 <div key={p.id} style={card}>
-<b>{p.nombre}</b>
-<button onClick={()=>toggleExpediente(p)}>Expediente</button>
-<button onClick={()=>editarPaciente(p)}>Editar</button>
-
-{pacienteSeleccionado?.id===p.id && (
-<div style={expediente}>
-<p>Tel: {p.telefono}</p>
-<p>Edad: {p.edad}</p>
-<p>Dirección: {p.direccion}</p>
-<p>Padecimiento: {p.padecimiento}</p>
-<p>Alergias: {p.alergias}</p>
-<p>Notas: {p.notas}</p>
-</div>
-)}
+{p.nombre}
 </div>
 ))}
 
@@ -251,13 +178,13 @@ onChange={(e)=>setFormPaciente({...formPaciente,notas:e.target.value})}
 );
 }
 
-// ================= CITAS =================
+// ===== CITAS =====
 if(pagina==="citas"){
 return(
 <div style={container}>
-<button style={btn} onClick={()=>setPagina("menu")}>⬅ Regresar</button>
+<button style={btn} onClick={()=>setPagina("menu")}>Regresar</button>
 
-<h2>Citas</h2>
+<h2>Calendario de Citas</h2>
 
 <select value={mes} onChange={(e)=>setMes(Number(e.target.value))}>
 {["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"].map((m,i)=>(
@@ -266,7 +193,7 @@ return(
 </select>
 
 <select value={anio} onChange={(e)=>setAnio(Number(e.target.value))}>
-{[2024,2025,2026,2027,2028,2029].map(a=>(
+{[2024,2025,2026,2027,2028].map(a=>(
 <option key={a}>{a}</option>
 ))}
 </select>
@@ -276,14 +203,15 @@ return(
 </div>
 
 <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)"}}>
-{[...Array(primerDia)].map((_,i)=><div key={"v"+i}></div>)}
+{[...Array(primerDia)].map((_,i)=><div key={i}></div>)}
 
 {[...Array(diasEnMes)].map((_,i)=>{
-const dia=i+1;
-const fecha=`${anio}-${mes+1}-${dia}`;
+const dia = i+1;
+const fecha = `${anio}-${mes+1}-${dia}`;
 
 return(
-<button key={i}
+<button
+key={i}
 style={{margin:3,padding:10,background:colorDia(fecha)}}
 onClick={()=>setFechaSeleccionada(fecha)}
 >
@@ -309,9 +237,7 @@ setPacienteSeleccionado(p);
 
 <div>
 {horas.map(h=>(
-<button key={h} onClick={()=>agendar(h)}>
-{h}
-</button>
+<button key={h} onClick={()=>agendar(h)}>{h}</button>
 ))}
 </div>
 </div>
@@ -321,24 +247,26 @@ setPacienteSeleccionado(p);
 );
 }
 
-// ================= CONFIG =================
+// ===== CONFIG =====
 if(pagina==="config"){
 return(
 <div style={container}>
-<button style={btn} onClick={()=>setPagina("menu")}>⬅ Regresar</button>
+<button style={btn} onClick={()=>setPagina("menu")}>Regresar</button>
 
 <h2>Configuración</h2>
 
-<h3>Cambiar Logo</h3>
+<h3>Logo</h3>
 <input type="file" onChange={cambiarLogo} />
 
-<label>Hora inicio</label>
-<input type="number" value={config.inicio}
+<h3>Horario</h3>
+
+<input type="number"
+value={config.inicio}
 onChange={(e)=>setConfig({...config,inicio:Number(e.target.value)})}
 />
 
-<label>Hora fin</label>
-<input type="number" value={config.fin}
+<input type="number"
+value={config.fin}
 onChange={(e)=>setConfig({...config,fin:Number(e.target.value)})}
 />
 
@@ -365,15 +293,21 @@ setConfig({...config,diasLaborales:[...config.diasLaborales,i]});
 );
 }
 
-// ================= ESTADISTICAS =================
+// ===== ESTADISTICAS =====
 if(pagina==="stats"){
 return(
 <div style={container}>
-<button style={btn} onClick={()=>setPagina("menu")}>⬅ Regresar</button>
+<button style={btn} onClick={()=>setPagina("menu")}>Regresar</button>
 
 <h2>Estadísticas</h2>
 <p>Total Pacientes: {pacientes.length}</p>
 <p>Total Citas: {citas.length}</p>
+
+<p>Citas Hoy: {
+citas.filter(c=>{
+return c.fecha === `${hoy.getFullYear()}-${hoy.getMonth()+1}-${hoy.getDate()}`
+}).length
+}</p>
 
 </div>
 );
@@ -383,9 +317,8 @@ return null;
 }
 
 const container={padding:30,fontFamily:"Arial"};
-const btn={padding:"12px",margin:"8px",background:"#2c7be5",color:"white",border:"none",borderRadius:"8px"};
+const btn={padding:"10px",margin:"5px",background:"#2c7be5",color:"white",border:"none",borderRadius:"6px"};
 const input={display:"block",margin:5,padding:8,width:"300px"};
 const card={border:"1px solid #ccc",padding:10,marginTop:10};
-const expediente={background:"#f4f4f4",padding:10,marginTop:5};
 
 export default App;
