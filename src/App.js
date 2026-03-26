@@ -9,6 +9,7 @@ const [pagina, setPagina] = useState("menu");
 const [pacientes, setPacientes] = useState([]);
 const [citas, setCitas] = useState([]);
 const [expedienteAbierto, setExpedienteAbierto] = useState(null);
+const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
 
 const [mes, setMes] = useState(hoy.getMonth());
 const [anio, setAnio] = useState(hoy.getFullYear());
@@ -37,13 +38,11 @@ useEffect(()=>{
   try{
     const p = JSON.parse(localStorage.getItem("pacientes")) || [];
     const c = JSON.parse(localStorage.getItem("citas")) || [];
-    const conf = JSON.parse(localStorage.getItem("config")) || {
-      inicio:9, fin:18, diasLaborales:[1,2,3,4,5]
-    };
+    const conf = JSON.parse(localStorage.getItem("config")) || config;
     const l = localStorage.getItem("logo");
 
-    setPacientes(Array.isArray(p) ? p : []);
-    setCitas(Array.isArray(c) ? c : []);
+    setPacientes(p);
+    setCitas(c);
     setConfig(conf);
     if(l) setLogo(l);
   }catch{
@@ -85,6 +84,16 @@ const guardarPaciente = ()=>{
   });
 };
 
+const actualizarPaciente = (id, campo, valor)=>{
+  const nuevos = pacientes.map(p=>{
+    if(p.id === id){
+      return {...p, [campo]: valor};
+    }
+    return p;
+  });
+  setPacientes(nuevos);
+};
+
 const toggleExpediente = (id)=>{
   setExpedienteAbierto(expedienteAbierto === id ? null : id);
 };
@@ -108,16 +117,33 @@ const colorDia = (fecha)=>{
     const partes = fecha.split("-");
     const d = new Date(partes[0], partes[1]-1, partes[2]);
 
-    if(d.toDateString() === hoy.toDateString()) return "#ffe082";
-    if(!config.diasLaborales.includes(d.getDay())) return "#ffcdd2";
-    if(citasFecha(fecha).length >= horas.length) return "#ff8a80";
-    if(citasFecha(fecha).length > 0) return "#a5d6a7";
-    if(fechaSeleccionada === fecha) return "#90caf9";
+    if(d.toDateString() === hoy.toDateString()) return "#ffe082"; // hoy
+    if(!config.diasLaborales.includes(d.getDay())) return "#ffcdd2"; // no laboral
+    if(citasFecha(fecha).length >= horas.length) return "#ff8a80"; // lleno
+    if(citasFecha(fecha).length > 0) return "#a5d6a7"; // ocupado
+    if(fechaSeleccionada === fecha) return "#90caf9"; // seleccionado
 
     return "white";
   }catch{
     return "white";
   }
+};
+
+const agendar = (hora)=>{
+  if(!pacienteSeleccionado || !fechaSeleccionada) return;
+
+  const existe = citas.some(
+    c => c.fecha === fechaSeleccionada && c.hora === hora
+  );
+
+  if(existe) return;
+
+  setCitas([...citas,{
+    id: Date.now(),
+    fecha: fechaSeleccionada,
+    hora,
+    paciente: pacienteSeleccionado.nombre
+  }]);
 };
 
 // ===== PAGINAS =====
@@ -128,10 +154,10 @@ function Menu(){
       {logo && <img src={logo} alt="logo" style={{width:120}} />}
       <h1>Consultorio Médico</h1>
 
-      <button style={btn} onClick={()=>setPagina("pacientes")}>👤 Pacientes</button>
-      <button style={btn} onClick={()=>setPagina("citas")}>📅 Citas</button>
-      <button style={btn} onClick={()=>setPagina("config")}>⚙️ Configuración</button>
-      <button style={btn} onClick={()=>setPagina("stats")}>📊 Estadísticas</button>
+      <button style={btn} onClick={()=>setPagina("pacientes")}>Pacientes</button>
+      <button style={btn} onClick={()=>setPagina("citas")}>Citas</button>
+      <button style={btn} onClick={()=>setPagina("config")}>Configuración</button>
+      <button style={btn} onClick={()=>setPagina("stats")}>Estadísticas</button>
     </div>
   );
 }
@@ -158,6 +184,21 @@ function Pacientes(){
       onChange={(e)=>setFormPaciente({...formPaciente,edad:e.target.value})}
       />
 
+      <input style={input} placeholder="Dirección"
+      value={formPaciente.direccion}
+      onChange={(e)=>setFormPaciente({...formPaciente,direccion:e.target.value})}
+      />
+
+      <input style={input} placeholder="Padecimiento"
+      value={formPaciente.padecimiento}
+      onChange={(e)=>setFormPaciente({...formPaciente,padecimiento:e.target.value})}
+      />
+
+      <input style={input} placeholder="Alergias"
+      value={formPaciente.alergias}
+      onChange={(e)=>setFormPaciente({...formPaciente,alergias:e.target.value})}
+      />
+
       <textarea style={input} placeholder="Notas"
       value={formPaciente.notas}
       onChange={(e)=>setFormPaciente({...formPaciente,notas:e.target.value})}
@@ -169,15 +210,29 @@ function Pacientes(){
 
       {pacientes.map(p=>(
         <div key={p.id} style={card}>
-          <b>{p.nombre}</b> - {p.telefono}
+          <b onClick={()=>setPacienteSeleccionado(p)}>{p.nombre}</b>
 
-          <br />
           <button onClick={()=>toggleExpediente(p.id)}>Expediente</button>
 
           {expedienteAbierto === p.id && (
             <div style={expediente}>
-              <p>Edad: {p.edad}</p>
-              <p>Notas: {p.notas}</p>
+              <input style={inputSmall} value={p.telefono}
+              onChange={(e)=>actualizarPaciente(p.id,"telefono",e.target.value)} />
+
+              <input style={inputSmall} value={p.edad}
+              onChange={(e)=>actualizarPaciente(p.id,"edad",e.target.value)} />
+
+              <input style={inputSmall} value={p.direccion}
+              onChange={(e)=>actualizarPaciente(p.id,"direccion",e.target.value)} />
+
+              <input style={inputSmall} value={p.padecimiento}
+              onChange={(e)=>actualizarPaciente(p.id,"padecimiento",e.target.value)} />
+
+              <input style={inputSmall} value={p.alergias}
+              onChange={(e)=>actualizarPaciente(p.id,"alergias",e.target.value)} />
+
+              <textarea style={inputSmall} value={p.notas}
+              onChange={(e)=>actualizarPaciente(p.id,"notas",e.target.value)} />
             </div>
           )}
         </div>
@@ -199,9 +254,7 @@ function Citas(){
       </select>
 
       <select value={anio} onChange={(e)=>setAnio(Number(e.target.value))}>
-        {[2024,2025,2026,2027,2028].map(a=>(
-          <option key={a}>{a}</option>
-        ))}
+        {[2024,2025,2026,2027,2028].map(a=>(<option key={a}>{a}</option>))}
       </select>
 
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)"}}>
@@ -226,11 +279,30 @@ function Citas(){
           );
         })}
       </div>
+
+      {fechaSeleccionada && (
+        <>
+        <h3>Horas disponibles</h3>
+        {horas.map(h=>(
+          <button key={h} style={btn} onClick={()=>agendar(h)}>
+            {h}
+          </button>
+        ))}
+        </>
+      )}
     </div>
   );
 }
 
 function Config(){
+  const toggleDia = (d)=>{
+    if(config.diasLaborales.includes(d)){
+      setConfig({...config, diasLaborales: config.diasLaborales.filter(x=>x!==d)});
+    }else{
+      setConfig({...config, diasLaborales: [...config.diasLaborales, d]});
+    }
+  };
+
   return(
     <div style={container}>
       <button style={btn} onClick={()=>setPagina("menu")}>Regresar</button>
@@ -247,6 +319,20 @@ function Config(){
       <input type="number" value={config.fin}
       onChange={(e)=>setConfig({...config,fin:Number(e.target.value)})}
       />
+
+      <h3>Días laborales</h3>
+      {["Dom","Lun","Mar","Mie","Jue","Vie","Sab"].map((d,i)=>(
+        <button
+          key={i}
+          style={{
+            ...btn,
+            background: config.diasLaborales.includes(i) ? "green" : "gray"
+          }}
+          onClick={()=>toggleDia(i)}
+        >
+          {d}
+        </button>
+      ))}
     </div>
   );
 }
@@ -274,6 +360,7 @@ return null;
 const container={padding:30,fontFamily:"Arial"};
 const btn={padding:"10px",margin:"5px",background:"#2c7be5",color:"white",border:"none",borderRadius:"6px"};
 const input={display:"block",margin:5,padding:8,width:"300px"};
+const inputSmall={display:"block",margin:3,padding:5,width:"200px"};
 const card={border:"1px solid #ccc",padding:10,marginTop:10};
 const expediente={background:"#f4f4f4",padding:10,marginTop:5};
 
