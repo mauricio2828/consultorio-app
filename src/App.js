@@ -4,20 +4,88 @@ import "./App.css";
 
 function App() {
 
-  const [pagina, setPagina] = useState("menu");
-  const [pacientes, setPacientes] = useState([]);
-  const [citas, setCitas] = useState([]);
-  const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
-  const [fechaActual, setFechaActual] = useState(new Date());
-  const [fechaSeleccionada, setFechaSeleccionada] = useState(null);
+const [pagina, setPagina] = useState("menu");
+const [pacientes, setPacientes] = useState([]);
+const [citas, setCitas] = useState([]);
+const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
 
-  const [config, setConfig] = useState({
-    inicio: 9,
-    fin: 18,
-    diasLaborales: [1,2,3,4,5]
-  });
+const hoy = new Date();
 
-  const [formPaciente, setFormPaciente] = useState({
+const [mes, setMes] = useState(hoy.getMonth());
+const [anio, setAnio] = useState(hoy.getFullYear());
+const [fechaSeleccionada, setFechaSeleccionada] = useState(null);
+
+const [logo, setLogo] = useState(null);
+
+const [config, setConfig] = useState({
+  inicio: 9,
+  fin: 18,
+  diasLaborales: [1,2,3,4,5]
+});
+
+const [formPaciente, setFormPaciente] = useState({
+  nombre:"",
+  telefono:"",
+  edad:"",
+  direccion:"",
+  padecimiento:"",
+  alergias:"",
+  notas:""
+});
+
+// ================= LOCAL STORAGE =================
+useEffect(()=>{
+  const p = localStorage.getItem("pacientes");
+  const c = localStorage.getItem("citas");
+  const conf = localStorage.getItem("config");
+  const l = localStorage.getItem("logo");
+
+  if(p) setPacientes(JSON.parse(p));
+  if(c) setCitas(JSON.parse(c));
+  if(conf) setConfig(JSON.parse(conf));
+  if(l) setLogo(l);
+},[]);
+
+useEffect(()=>{
+  localStorage.setItem("pacientes", JSON.stringify(pacientes));
+},[pacientes]);
+
+useEffect(()=>{
+  localStorage.setItem("citas", JSON.stringify(citas));
+},[citas]);
+
+useEffect(()=>{
+  localStorage.setItem("config", JSON.stringify(config));
+},[config]);
+
+useEffect(()=>{
+  if(logo){
+    localStorage.setItem("logo", logo);
+  }
+},[logo]);
+
+// ================= LOGO =================
+const cambiarLogo = (e)=>{
+  const archivo = e.target.files[0];
+  if(!archivo) return;
+
+  const reader = new FileReader();
+  reader.onload = function(event){
+    setLogo(event.target.result);
+  };
+  reader.readAsDataURL(archivo);
+};
+
+// ================= PACIENTES =================
+const guardarPaciente = ()=>{
+  if(!formPaciente.nombre) return;
+
+  setPacientes([
+    ...pacientes,
+    { id: Date.now(), ...formPaciente }
+  ]);
+
+  setFormPaciente({
     nombre:"",
     telefono:"",
     edad:"",
@@ -26,299 +94,265 @@ function App() {
     alergias:"",
     notas:""
   });
+};
 
-  // ================= LOCAL STORAGE =================
-  useEffect(()=>{
-    const p = localStorage.getItem("pacientes");
-    const c = localStorage.getItem("citas");
-    const conf = localStorage.getItem("config");
+const toggleExpediente = (p)=>{
+  if(pacienteSeleccionado?.id === p.id){
+    setPacienteSeleccionado(null);
+  }else{
+    setPacienteSeleccionado(p);
+  }
+};
 
-    if(p) setPacientes(JSON.parse(p));
-    if(c) setCitas(JSON.parse(c));
-    if(conf) setConfig(JSON.parse(conf));
-  },[]);
+// ================= CALENDARIO =================
+const diasSemana = ["L","M","M","J","V","S","D"];
 
-  useEffect(()=>{
-    localStorage.setItem("pacientes", JSON.stringify(pacientes));
-  },[pacientes]);
+const diasEnMes = new Date(anio, mes+1, 0).getDate();
+const primerDia = (new Date(anio, mes, 1).getDay()+6)%7;
 
-  useEffect(()=>{
-    localStorage.setItem("citas", JSON.stringify(citas));
-  },[citas]);
+const horas = [];
+for(let h=config.inicio; h<=config.fin; h++){
+  horas.push(h+":00");
+}
 
-  useEffect(()=>{
-    localStorage.setItem("config", JSON.stringify(config));
-  },[config]);
+const citasFecha = (f)=> citas.filter(c=>c.fecha===f);
 
-  // ================= PACIENTES =================
-  const guardarPaciente = () =>{
-    if(!formPaciente.nombre) return;
+const colorDia = (fecha)=>{
+  const d = new Date(fecha);
 
-    const nuevo = {
+  if(d.toDateString() === hoy.toDateString()) return "#ffe082"; // hoy
+  if(!config.diasLaborales.includes(d.getDay())) return "#e0e0e0"; // no laboral
+  if(citasFecha(fecha).length >= horas.length) return "#ff8a80"; // lleno
+  if(citasFecha(fecha).length > 0) return "#a5d6a7"; // con citas
+  if(fechaSeleccionada === fecha) return "#90caf9"; // seleccionado
+
+  return "white";
+};
+
+const agendar = (hora)=>{
+  if(!pacienteSeleccionado || !fechaSeleccionada) return;
+
+  const existe = citas.some(
+    c=>c.fecha===fechaSeleccionada && c.hora===hora
+  );
+
+  if(existe) return;
+
+  setCitas([
+    ...citas,
+    {
       id: Date.now(),
-      ...formPaciente
-    };
-
-    setPacientes([...pacientes, nuevo]);
-
-    setFormPaciente({
-      nombre:"",
-      telefono:"",
-      edad:"",
-      direccion:"",
-      padecimiento:"",
-      alergias:"",
-      notas:""
-    });
-  };
-
-  const eliminarPaciente = (id)=>{
-    setPacientes(pacientes.filter(p=>p.id!==id));
-  };
-
-  const toggleExpediente = (p)=>{
-    if(pacienteSeleccionado?.id === p.id){
-      setPacienteSeleccionado(null);
-    }else{
-      setPacienteSeleccionado(p);
+      fecha: fechaSeleccionada,
+      hora,
+      paciente: pacienteSeleccionado.nombre
     }
-  };
+  ]);
+};
 
-  // ================= CALENDARIO =================
-  const cambiarMes = (n)=>{
-    const nueva = new Date(fechaActual);
-    nueva.setMonth(nueva.getMonth()+n);
-    setFechaActual(nueva);
-  };
+// ================= MENU =================
+if(pagina==="menu"){
+return(
+<div style={container}>
 
-  const diasMes = new Date(
-    fechaActual.getFullYear(),
-    fechaActual.getMonth()+1,
-    0
-  ).getDate();
+{logo && (
+<img src={logo} alt="logo" style={{width:120, marginBottom:10}}/>
+)}
 
-  const diasSemana = ["D","L","M","M","J","V","S"];
+<h1>Consultorio Médico</h1>
 
-  const esLaboral = (fecha)=>{
-    const d = new Date(fecha).getDay();
-    return config.diasLaborales.includes(d);
-  };
+<button style={btn} onClick={()=>setPagina("pacientes")}>👤 Pacientes</button>
+<button style={btn} onClick={()=>setPagina("calendario")}>📅 Calendario</button>
+<button style={btn} onClick={()=>setPagina("config")}>⚙️ Configuración</button>
 
-  const horas = [];
-  for(let h=config.inicio; h<=config.fin; h++){
-    horas.push(h + ":00");
-  }
+</div>
+);
+}
 
-  const agendar = (hora)=>{
-    if(!pacienteSeleccionado || !fechaSeleccionada) return;
+// ================= PACIENTES =================
+if(pagina==="pacientes"){
+return(
+<div style={container}>
+<button style={btn} onClick={()=>setPagina("menu")}>⬅ Regresar</button>
 
-    const existe = citas.some(
-      c=>c.fecha===fechaSeleccionada && c.hora===hora
-    );
+<h2>Nuevo Paciente</h2>
 
-    if(existe) return;
+<input style={input} placeholder="Nombre"
+value={formPaciente.nombre}
+onChange={(e)=>setFormPaciente({...formPaciente,nombre:e.target.value})}
+/>
 
-    setCitas([
-      ...citas,
-      {
-        id: Date.now(),
-        fecha: fechaSeleccionada,
-        hora,
-        paciente: pacienteSeleccionado.nombre
-      }
-    ]);
-  };
+<input style={input} placeholder="Teléfono"
+value={formPaciente.telefono}
+onChange={(e)=>setFormPaciente({...formPaciente,telefono:e.target.value})}
+/>
 
-  // ================= ESTADISTICAS =================
-  const totalCitas = citas.length;
-  const totalPacientes = pacientes.length;
+<input style={input} placeholder="Edad"
+value={formPaciente.edad}
+onChange={(e)=>setFormPaciente({...formPaciente,edad:e.target.value})}
+/>
 
-  // ================= MENU =================
-  if(pagina==="menu"){
-    return(
-      <div style={container}>
-        <h1>Consultorio Médico</h1>
+<input style={input} placeholder="Dirección"
+value={formPaciente.direccion}
+onChange={(e)=>setFormPaciente({...formPaciente,direccion:e.target.value})}
+/>
 
-        <button style={btn} onClick={()=>setPagina("pacientes")}>👤 Pacientes</button>
-        <button style={btn} onClick={()=>setPagina("calendario")}>📅 Calendario</button>
-        <button style={btn} onClick={()=>setPagina("config")}>⚙️ Configuración</button>
-        <button style={btn} onClick={()=>setPagina("stats")}>📊 Estadísticas</button>
-      </div>
-    );
-  }
+<input style={input} placeholder="Padecimiento"
+value={formPaciente.padecimiento}
+onChange={(e)=>setFormPaciente({...formPaciente,padecimiento:e.target.value})}
+/>
 
-  // ================= PACIENTES =================
-  if(pagina==="pacientes"){
-    return(
-      <div style={container}>
-        <button style={btn} onClick={()=>setPagina("menu")}>⬅ Regresar</button>
+<input style={input} placeholder="Alergias"
+value={formPaciente.alergias}
+onChange={(e)=>setFormPaciente({...formPaciente,alergias:e.target.value})}
+/>
 
-        <h2>Nuevo Paciente</h2>
+<textarea style={input} placeholder="Notas"
+value={formPaciente.notas}
+onChange={(e)=>setFormPaciente({...formPaciente,notas:e.target.value})}
+/>
 
-        <input style={input} placeholder="Nombre"
-          value={formPaciente.nombre}
-          onChange={(e)=>setFormPaciente({...formPaciente,nombre:e.target.value})}
-        />
+<button style={btn} onClick={guardarPaciente}>Guardar Paciente</button>
 
-        <input style={input} placeholder="Teléfono"
-          value={formPaciente.telefono}
-          onChange={(e)=>setFormPaciente({...formPaciente,telefono:e.target.value})}
-        />
+<h2>Pacientes</h2>
 
-        <input style={input} placeholder="Edad"
-          value={formPaciente.edad}
-          onChange={(e)=>setFormPaciente({...formPaciente,edad:e.target.value})}
-        />
+{pacientes.map(p=>(
+<div key={p.id} style={card}>
+<b>{p.nombre}</b>
 
-        <input style={input} placeholder="Dirección"
-          value={formPaciente.direccion}
-          onChange={(e)=>setFormPaciente({...formPaciente,direccion:e.target.value})}
-        />
+<button onClick={()=>toggleExpediente(p)}>Expediente</button>
 
-        <input style={input} placeholder="Padecimiento"
-          value={formPaciente.padecimiento}
-          onChange={(e)=>setFormPaciente({...formPaciente,padecimiento:e.target.value})}
-        />
+{pacienteSeleccionado?.id===p.id && (
+<div style={expediente}>
+<p>Tel: {p.telefono}</p>
+<p>Edad: {p.edad}</p>
+<p>Dirección: {p.direccion}</p>
+<p>Padecimiento: {p.padecimiento}</p>
+<p>Alergias: {p.alergias}</p>
+<p>Notas: {p.notas}</p>
+</div>
+)}
+</div>
+))}
 
-        <input style={input} placeholder="Alergias"
-          value={formPaciente.alergias}
-          onChange={(e)=>setFormPaciente({...formPaciente,alergias:e.target.value})}
-        />
+</div>
+);
+}
 
-        <textarea style={input} placeholder="Notas"
-          value={formPaciente.notas}
-          onChange={(e)=>setFormPaciente({...formPaciente,notas:e.target.value})}
-        />
+// ================= CALENDARIO =================
+if(pagina==="calendario"){
+return(
+<div style={container}>
+<button style={btn} onClick={()=>setPagina("menu")}>⬅ Regresar</button>
 
-        <button style={btn} onClick={guardarPaciente}>Guardar Paciente</button>
+<h2>Calendario</h2>
 
-        <h2>Pacientes</h2>
+<select value={mes} onChange={(e)=>setMes(Number(e.target.value))}>
+{["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"].map((m,i)=>(
+<option key={i} value={i}>{m}</option>
+))}
+</select>
 
-        {pacientes.map(p=>(
-          <div key={p.id} style={card}>
-            <b>{p.nombre}</b> - {p.telefono}
+<select value={anio} onChange={(e)=>setAnio(Number(e.target.value))}>
+{[2024,2025,2026,2027,2028,2029].map(a=>(
+<option key={a}>{a}</option>
+))}
+</select>
 
-            <button onClick={()=>toggleExpediente(p)}>Expediente</button>
-            <button onClick={()=>eliminarPaciente(p.id)}>Eliminar</button>
+<div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",marginTop:10}}>
+{diasSemana.map(d=><div key={d}>{d}</div>)}
+</div>
 
-            {pacienteSeleccionado?.id===p.id && (
-              <div style={expediente}>
-                <p>Edad: {p.edad}</p>
-                <p>Dirección: {p.direccion}</p>
-                <p>Padecimiento: {p.padecimiento}</p>
-                <p>Alergias: {p.alergias}</p>
-                <p>Notas: {p.notas}</p>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    );
-  }
+<div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)"}}>
+{[...Array(primerDia)].map((_,i)=><div key={"v"+i}></div>)}
 
-  // ================= CALENDARIO =================
-  if(pagina==="calendario"){
-    return(
-      <div style={container}>
-        <button style={btn} onClick={()=>setPagina("menu")}>⬅ Regresar</button>
+{[...Array(diasEnMes)].map((_,i)=>{
+const dia=i+1;
+const fecha=`${anio}-${mes+1}-${dia}`;
 
-        <h2>
-          {fechaActual.toLocaleString("es-MX",{month:"long"})}
-          {" "}
-          {fechaActual.getFullYear()}
-        </h2>
+return(
+<button key={i}
+style={{margin:3,padding:10,background:colorDia(fecha)}}
+onClick={()=>setFechaSeleccionada(fecha)}
+>
+{dia}
+</button>
+);
+})}
+</div>
 
-        <button onClick={()=>cambiarMes(-1)}>Mes anterior</button>
-        <button onClick={()=>cambiarMes(1)}>Mes siguiente</button>
+<p>🟡 Hoy | 🔵 Seleccionado | 🟢 Con citas | 🔴 Lleno | ⚪ Disponible | ⚫ No laboral</p>
 
-        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)"}}>
-          {diasSemana.map(d=><div key={d}>{d}</div>)}
-        </div>
+{fechaSeleccionada && (
+<div>
+<h3>{fechaSeleccionada}</h3>
 
-        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)"}}>
-          {[...Array(diasMes)].map((_,i)=>{
-            const dia=i+1;
-            const fecha=`${fechaActual.getFullYear()}-${fechaActual.getMonth()+1}-${dia}`;
+<select onChange={(e)=>{
+const p = pacientes.find(x=>x.id===Number(e.target.value));
+setPacienteSeleccionado(p);
+}}>
+<option>Paciente</option>
+{pacientes.map(p=>(
+<option key={p.id} value={p.id}>{p.nombre}</option>
+))}
+</select>
 
-            return(
-              <button key={i}
-                style={{margin:3,padding:10}}
-                onClick={()=>setFechaSeleccionada(fecha)}
-              >
-                {dia}
-              </button>
-            );
-          })}
-        </div>
+<div>
+{horas.map(h=>(
+<button key={h} onClick={()=>agendar(h)}>
+{h}
+</button>
+))}
+</div>
+</div>
+)}
 
-        {fechaSeleccionada && (
-          <div>
-            <h3>{fechaSeleccionada}</h3>
+</div>
+);
+}
 
-            <select onChange={(e)=>{
-              const p = pacientes.find(x=>x.id===Number(e.target.value));
-              setPacienteSeleccionado(p);
-            }}>
-              <option>Paciente</option>
-              {pacientes.map(p=>(
-                <option key={p.id} value={p.id}>{p.nombre}</option>
-              ))}
-            </select>
+// ================= CONFIG =================
+if(pagina==="config"){
+return(
+<div style={container}>
+<button style={btn} onClick={()=>setPagina("menu")}>⬅ Regresar</button>
 
-            <div>
-              {horas.map(h=>(
-                <button key={h} onClick={()=>agendar(h)}>
-                  {h}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+<h2>Configuración</h2>
 
-      </div>
-    );
-  }
+<h3>Cambiar Logo</h3>
+<input type="file" onChange={cambiarLogo} />
 
-  // ================= CONFIG =================
-  if(pagina==="config"){
-    return(
-      <div style={container}>
-        <button style={btn} onClick={()=>setPagina("menu")}>⬅ Regresar</button>
+<label>Hora inicio</label>
+<input type="number" value={config.inicio}
+onChange={(e)=>setConfig({...config,inicio:Number(e.target.value)})}
+/>
 
-        <h2>Días laborales</h2>
+<label>Hora fin</label>
+<input type="number" value={config.fin}
+onChange={(e)=>setConfig({...config,fin:Number(e.target.value)})}
+/>
 
-        {["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"].map((d,i)=>(
-          <label key={i}>
-            <input
-              type="checkbox"
-              checked={config.diasLaborales.includes(i)}
-              onChange={()=>{
-                if(config.diasLaborales.includes(i)){
-                  setConfig({...config,diasLaborales:config.diasLaborales.filter(x=>x!==i)});
-                }else{
-                  setConfig({...config,diasLaborales:[...config.diasLaborales,i]});
-                }
-              }}
-            />
-            {d}
-          </label>
-        ))}
-      </div>
-    );
-  }
+<h3>Días laborales</h3>
 
-  // ================= STATS =================
-  if(pagina==="stats"){
-    return(
-      <div style={container}>
-        <button style={btn} onClick={()=>setPagina("menu")}>⬅ Regresar</button>
+{["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"].map((d,i)=>(
+<label key={i}>
+<input
+type="checkbox"
+checked={config.diasLaborales.includes(i)}
+onChange={()=>{
+if(config.diasLaborales.includes(i)){
+setConfig({...config,diasLaborales:config.diasLaborales.filter(x=>x!==i)});
+}else{
+setConfig({...config,diasLaborales:[...config.diasLaborales,i]});
+}
+}}
+/>
+{d}
+</label>
+))}
 
-        <h2>Estadísticas</h2>
-        <p>Total citas: {totalCitas}</p>
-        <p>Total pacientes: {totalPacientes}</p>
-      </div>
-    );
-  }
+</div>
+);
+}
 
 }
 
