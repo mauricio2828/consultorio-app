@@ -33,17 +33,21 @@ const [formPaciente, setFormPaciente] = useState({
   notas:""
 });
 
-// ===== LOCAL STORAGE =====
+// ===== LOCAL STORAGE SEGURO =====
 useEffect(()=>{
-  const p = localStorage.getItem("pacientes");
-  const c = localStorage.getItem("citas");
-  const conf = localStorage.getItem("config");
-  const l = localStorage.getItem("logo");
+  try{
+    const p = JSON.parse(localStorage.getItem("pacientes")) || [];
+    const c = JSON.parse(localStorage.getItem("citas")) || [];
+    const conf = JSON.parse(localStorage.getItem("config")) || config;
+    const l = localStorage.getItem("logo");
 
-  if(p) setPacientes(JSON.parse(p));
-  if(c) setCitas(JSON.parse(c));
-  if(conf) setConfig(JSON.parse(conf));
-  if(l) setLogo(l);
+    setPacientes(p);
+    setCitas(c);
+    setConfig(conf);
+    if(l) setLogo(l);
+  }catch{
+    localStorage.clear();
+  }
 },[]);
 
 useEffect(()=>{localStorage.setItem("pacientes",JSON.stringify(pacientes));},[pacientes]);
@@ -99,19 +103,25 @@ for(let h=config.inicio; h<=config.fin; h++){
 }
 
 const citasFecha = (fecha)=>{
+  if(!citas) return [];
   return citas.filter(c=>c.fecha === fecha);
 };
 
 const colorDia = (fecha)=>{
-  const d = new Date(fecha);
+  try{
+    const partes = fecha.split("-");
+    const d = new Date(partes[0], partes[1]-1, partes[2]);
 
-  if(d.toDateString() === hoy.toDateString()) return "#ffe082";
-  if(!config.diasLaborales.includes(d.getDay())) return "#e0e0e0";
-  if(citasFecha(fecha).length >= horas.length) return "#ff8a80";
-  if(citasFecha(fecha).length > 0) return "#a5d6a7";
-  if(fechaSeleccionada === fecha) return "#90caf9";
+    if(d.toDateString() === hoy.toDateString()) return "#ffe082";
+    if(!config.diasLaborales || !config.diasLaborales.includes(d.getDay())) return "#e0e0e0";
+    if(citasFecha(fecha).length >= horas.length) return "#ff8a80";
+    if(citasFecha(fecha).length > 0) return "#a5d6a7";
+    if(fechaSeleccionada === fecha) return "#90caf9";
 
-  return "white";
+    return "white";
+  }catch{
+    return "white";
+  }
 };
 
 const agendar = (hora)=>{
@@ -169,21 +179,6 @@ function Pacientes(){
       onChange={(e)=>setFormPaciente({...formPaciente,edad:e.target.value})}
       />
 
-      <input style={input} placeholder="Dirección"
-      value={formPaciente.direccion}
-      onChange={(e)=>setFormPaciente({...formPaciente,direccion:e.target.value})}
-      />
-
-      <input style={input} placeholder="Padecimiento"
-      value={formPaciente.padecimiento}
-      onChange={(e)=>setFormPaciente({...formPaciente,padecimiento:e.target.value})}
-      />
-
-      <input style={input} placeholder="Alergias"
-      value={formPaciente.alergias}
-      onChange={(e)=>setFormPaciente({...formPaciente,alergias:e.target.value})}
-      />
-
       <textarea style={input} placeholder="Notas"
       value={formPaciente.notas}
       onChange={(e)=>setFormPaciente({...formPaciente,notas:e.target.value})}
@@ -202,15 +197,11 @@ function Pacientes(){
             <div style={expediente}>
               <p>Tel: {p.telefono}</p>
               <p>Edad: {p.edad}</p>
-              <p>Dirección: {p.direccion}</p>
-              <p>Padecimiento: {p.padecimiento}</p>
-              <p>Alergias: {p.alergias}</p>
               <p>Notas: {p.notas}</p>
             </div>
           )}
         </div>
       ))}
-
     </div>
   );
 }
@@ -219,8 +210,7 @@ function Citas(){
   return(
     <div style={container}>
       <button style={btn} onClick={()=>setPagina("menu")}>Regresar</button>
-
-      <h2>Calendario de Citas</h2>
+      <h2>Calendario</h2>
 
       <select value={mes} onChange={(e)=>setMes(Number(e.target.value))}>
         {["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"].map((m,i)=>(
@@ -234,7 +224,7 @@ function Citas(){
         ))}
       </select>
 
-      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",marginTop:10}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)"}}>
         {diasSemana.map(d=><div key={d}>{d}</div>)}
       </div>
 
@@ -243,10 +233,7 @@ function Citas(){
 
         {[...Array(diasEnMes)].map((_,i)=>{
           const dia = i+1;
-          const fecha =
-          anio + "-" +
-          String(mes+1).padStart(2,'0') + "-" +
-          String(dia).padStart(2,'0');
+          const fecha = anio + "-" + (mes+1) + "-" + dia;
 
           return(
             <button
@@ -259,28 +246,6 @@ function Citas(){
           );
         })}
       </div>
-
-      {fechaSeleccionada && (
-        <div>
-          <h3>{fechaSeleccionada}</h3>
-
-          <select onChange={(e)=>{
-            const p = pacientes.find(x=>x.id===Number(e.target.value));
-            setPacienteSeleccionado(p);
-          }}>
-            <option>Paciente</option>
-            {pacientes.map(p=>(
-              <option key={p.id} value={p.id}>{p.nombre}</option>
-            ))}
-          </select>
-
-          <div>
-            {horas.map(h=>(
-              <button key={h} onClick={()=>agendar(h)}>{h}</button>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -289,10 +254,9 @@ function Config(){
   return(
     <div style={container}>
       <button style={btn} onClick={()=>setPagina("menu")}>Regresar</button>
-
       <h2>Configuración</h2>
 
-      <h3>Cambiar Logo</h3>
+      <h3>Logo</h3>
       <input type="file" onChange={cambiarLogo} />
 
       <h3>Horario</h3>
@@ -303,48 +267,21 @@ function Config(){
       <input type="number" value={config.fin}
       onChange={(e)=>setConfig({...config,fin:Number(e.target.value)})}
       />
-
-      <h3>Días laborales</h3>
-
-      {["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"].map((d,i)=>(
-        <div key={i}>
-          <input
-          type="checkbox"
-          checked={config.diasLaborales.includes(i)}
-          onChange={()=>{
-            if(config.diasLaborales.includes(i)){
-              setConfig({...config,diasLaborales:config.diasLaborales.filter(x=>x!==i)});
-            }else{
-              setConfig({...config,diasLaborales:[...config.diasLaborales,i]});
-            }
-          }}
-          />
-          {d}
-        </div>
-      ))}
     </div>
   );
 }
 
 function Stats(){
-  const hoyStr =
-  hoy.getFullYear() + "-" +
-  String(hoy.getMonth()+1).padStart(2,'0') + "-" +
-  String(hoy.getDate()).padStart(2,'0');
-
   return(
     <div style={container}>
       <button style={btn} onClick={()=>setPagina("menu")}>Regresar</button>
-
       <h2>Estadísticas</h2>
-      <p>Total Pacientes: {pacientes.length}</p>
-      <p>Total Citas: {citas.length}</p>
-      <p>Citas Hoy: {citas.filter(c=>c.fecha===hoyStr).length}</p>
+      <p>Pacientes: {pacientes.length}</p>
+      <p>Citas: {citas.length}</p>
     </div>
   );
 }
 
-// ===== RENDER =====
 if(pagina==="menu") return <Menu/>
 if(pagina==="pacientes") return <Pacientes/>
 if(pagina==="citas") return <Citas/>
@@ -354,7 +291,6 @@ if(pagina==="stats") return <Stats/>
 return null;
 }
 
-// ===== ESTILOS =====
 const container={padding:30,fontFamily:"Arial"};
 const btn={padding:"10px",margin:"5px",background:"#2c7be5",color:"white",border:"none",borderRadius:"6px"};
 const input={display:"block",margin:5,padding:8,width:"300px"};
