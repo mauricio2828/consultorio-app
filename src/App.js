@@ -102,6 +102,13 @@ function App() {
     return config.diasLaborales.includes(d);
   };
 
+  const horas = [];
+  for (let h = config.inicio; h <= config.fin; h++) {
+    const hora12 = h > 12 ? h - 12 : h;
+    const ampm = h >= 12 ? "PM" : "AM";
+    horas.push(`${hora12}:00 ${ampm}`);
+  }
+
   const citasEnFecha = (fecha) => {
     return citas.filter(c => c.fecha === fecha);
   };
@@ -113,14 +120,6 @@ function App() {
   const tieneCitas = (fecha) => {
     return citas.some(c => c.fecha === fecha);
   };
-
-  // HORAS
-  const horas = [];
-  for (let h = config.inicio; h <= config.fin; h++) {
-    const hora12 = h > 12 ? h - 12 : h;
-    const ampm = h >= 12 ? "PM" : "AM";
-    horas.push(`${hora12}:00 ${ampm}`);
-  }
 
   // CITAS
   const agendar = (hora) => {
@@ -165,6 +164,9 @@ function App() {
     }
   };
 
+  // ESTADISTICAS
+  const totalCitas = citas.length;
+
   // MENU
   if (pagina === "menu") {
     return (
@@ -172,8 +174,9 @@ function App() {
         <h1>🏥 Consultorio Médico</h1>
 
         <button style={btn} onClick={() => setPagina("pacientes")}>👤 Pacientes</button>
-        <button style={btn} onClick={() => setPagina("citas")}>📅 Citas</button>
+        <button style={btn} onClick={() => setPagina("citas")}>📅 Calendario</button>
         <button style={btn} onClick={() => setPagina("config")}>⚙️ Configuración</button>
+        <button style={btn} onClick={() => setPagina("stats")}>📊 Estadísticas</button>
       </div>
     );
   }
@@ -222,7 +225,7 @@ function App() {
     );
   }
 
-  // CITAS
+  // CALENDARIO
   if (pagina === "citas") {
     return (
       <div style={container}>
@@ -233,22 +236,12 @@ function App() {
         <button onClick={() => cambiarMes(-1)}>⬅</button>
         <button onClick={() => cambiarMes(1)}>➡</button>
 
-        {/* LEYENDA */}
-        <div style={{marginTop:10}}>
-          <span style={{background:"#2c7be5", color:"white", padding:"5px"}}>Hoy</span>
-          <span style={{background:"#28a745", color:"white", padding:"5px", marginLeft:5}}>Con citas</span>
-          <span style={{background:"#ff0000", color:"white", padding:"5px", marginLeft:5}}>Lleno</span>
-          <span style={{background:"#ccc", padding:"5px", marginLeft:5}}>No laboral</span>
-        </div>
-
-        {/* DIAS SEMANA */}
         <div style={{display:"grid", gridTemplateColumns:"repeat(7,1fr)", marginTop:10}}>
           {diasSemana.map(d => (
             <div key={d} style={{textAlign:"center", fontWeight:"bold"}}>{d}</div>
           ))}
         </div>
 
-        {/* CALENDARIO */}
         <div style={{display:"grid", gridTemplateColumns:"repeat(7,1fr)"}}>
           {[...Array(diasEnMes)].map((_, i) => {
             const dia = i+1;
@@ -325,6 +318,17 @@ function App() {
             {d}
           </label>
         ))}
+      </div>
+    );
+  }
+
+  // STATS
+  if (pagina === "stats") {
+    return (
+      <div style={container}>
+        <button style={btn} onClick={()=>setPagina("menu")}>⬅</button>
+        <h2>Estadísticas</h2>
+        <p>Total citas: {totalCitas}</p>
       </div>
     );
   }
