@@ -73,9 +73,15 @@ function Pacientes({
 function Config({config,setConfig,cambiarLogo}){
   const toggleDia=(d)=>{
     if(config.diasLaborales.includes(d)){
-      setConfig({...config,diasLaborales:config.diasLaborales.filter(x=>x!==d)});
+      setConfig(prev=>({
+        ...prev,
+        diasLaborales: prev.diasLaborales.filter(x=>x!==d)
+      }));
     }else{
-      setConfig({...config,diasLaborales:[...config.diasLaborales,d]});
+      setConfig(prev=>({
+        ...prev,
+        diasLaborales: [...prev.diasLaborales,d]
+      }));
     }
   };
 
@@ -104,14 +110,12 @@ function Citas({
   config
 }){
   const hoy=new Date();
-  const [mes,setMes]=useState(hoy.getMonth());
-  const [anio,setAnio]=useState(hoy.getFullYear());
   const [fechaSeleccionada,setFechaSeleccionada]=useState("");
-  const [pacienteSeleccionado,setPacienteSeleccionado]=useState(null);
+  const [pacienteSeleccionado,setPacienteSeleccionado]=useState("");
 
   const diasSemana=["L","M","M","J","V","S","D"];
-  const diasEnMes=new Date(anio,mes+1,0).getDate();
-  const primerDia=(new Date(anio,mes,1).getDay()+6)%7;
+  const diasEnMes=new Date(hoy.getFullYear(),hoy.getMonth()+1,0).getDate();
+  const primerDia=(new Date(hoy.getFullYear(),hoy.getMonth(),1).getDay()+6)%7;
 
   const horas=[];
   for(let h=config.inicio;h<=config.fin;h++){
@@ -123,7 +127,7 @@ function Citas({
   const agendar=(hora)=>{
     if(!pacienteSeleccionado||!fechaSeleccionada) return;
 
-    setCitas([...citas,{
+    setCitas(prev=>[...prev,{
       id:Date.now(),
       fecha:fechaSeleccionada,
       hora,
@@ -141,7 +145,7 @@ function Citas({
 
         {[...Array(diasEnMes)].map((_,i)=>{
           const dia=i+1;
-          const fecha=`${anio}-${mes+1}-${dia}`;
+          const fecha=`${hoy.getFullYear()}-${hoy.getMonth()+1}-${dia}`;
           return(
             <button key={i} onClick={()=>setFechaSeleccionada(fecha)}>
               {dia}
@@ -153,9 +157,9 @@ function Citas({
       {fechaSeleccionada && (
         <>
           <select onChange={(e)=>setPacienteSeleccionado(e.target.value)}>
-            <option>Paciente</option>
+            <option value="">Paciente</option>
             {pacientes.map(p=>(
-              <option key={p.id}>{p.nombre}</option>
+              <option key={p.id} value={p.nombre}>{p.nombre}</option>
             ))}
           </select>
 
@@ -170,7 +174,7 @@ function Citas({
   );
 }
 
-// ===== APP PRINCIPAL =====
+// ===== APP =====
 export default function App(){
 
   const [pagina,setPagina]=useState("menu");
@@ -193,7 +197,9 @@ export default function App(){
   useEffect(()=>{
     setPacientes(JSON.parse(localStorage.getItem("pacientes"))||[]);
     setCitas(JSON.parse(localStorage.getItem("citas"))||[]);
-    setConfig(JSON.parse(localStorage.getItem("config"))||config);
+    setConfig(JSON.parse(localStorage.getItem("config"))||{
+      inicio:9,fin:18,diasLaborales:[1,2,3,4,5]
+    });
   },[]);
 
   useEffect(()=>localStorage.setItem("pacientes",JSON.stringify(pacientes)),[pacientes]);
@@ -202,16 +208,17 @@ export default function App(){
 
   const guardarPaciente=()=>{
     if(!formPaciente.nombre) return;
-    setPacientes([...pacientes,{id:Date.now(),...formPaciente}]);
+    setPacientes(prev=>[...prev,{id:Date.now(),...formPaciente}]);
     setFormPaciente({nombre:"",telefono:"",edad:""});
   };
 
   const actualizarPaciente=(id,campo,valor)=>{
-    setPacientes(pacientes.map(p=>p.id===id?{...p,[campo]:valor}:p));
+    setPacientes(prev=>prev.map(p=>p.id===id?{...p,[campo]:valor}:p));
   };
 
   const cambiarLogo=(e)=>{
     const file=e.target.files[0];
+    if(!file) return;
     const reader=new FileReader();
     reader.onload=e=>setLogo(e.target.result);
     reader.readAsDataURL(file);
