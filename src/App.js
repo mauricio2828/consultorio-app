@@ -39,7 +39,8 @@ export default function App() {
   const [config, setConfig] = useState({
     inicio: 9,
     fin: 18,
-    diasLaborales: [1,2,3,4,5]
+    diasLaborales: [1,2,3,4,5],
+    multiplePorHora: false
   });
 
   const [formPaciente, setFormPaciente] = useState({
@@ -59,7 +60,7 @@ export default function App() {
     setPacientes(JSON.parse(localStorage.getItem("pacientes"))||[]);
     setCitas(JSON.parse(localStorage.getItem("citas"))||[]);
     setConfig(JSON.parse(localStorage.getItem("config"))||{
-      inicio:9, fin:18, diasLaborales:[1,2,3,4,5]
+      inicio:9, fin:18, diasLaborales:[1,2,3,4,5], multiplePorHora:false
     });
     setLogo(localStorage.getItem("logo"));
   },[]);
@@ -109,6 +110,28 @@ export default function App() {
     setCitas(citas.filter(c=>c.id !== cita.id));
   };
 
+  const horaOcupada = (hora)=>{
+    return citas.some(c=>c.fecha===fechaSeleccionada && c.hora===hora);
+  };
+
+  const agendar=(hora)=>{
+    if(!pacienteSeleccionado || !fechaSeleccionada) return;
+
+    if(!config.multiplePorHora){
+      const existe = citas.some(
+        c => c.fecha === fechaSeleccionada && c.hora === hora
+      );
+      if(existe) return;
+    }
+
+    setCitas([...citas,{
+      id:Date.now(),
+      fecha:fechaSeleccionada,
+      hora,
+      paciente:pacienteSeleccionado
+    }]);
+  };
+
   // LOGO
   const cambiarLogo=(e)=>{
     const file=e.target.files[0];
@@ -142,23 +165,6 @@ export default function App() {
     if(fechaSeleccionada===fecha) return "#90caf9";
 
     return "white";
-  };
-
-  const agendar=(hora)=>{
-    if(!pacienteSeleccionado || !fechaSeleccionada) return;
-
-    const existe = citas.some(
-      c => c.fecha === fechaSeleccionada && c.hora === hora
-    );
-
-    if(existe) return;
-
-    setCitas([...citas,{
-      id:Date.now(),
-      fecha:fechaSeleccionada,
-      hora,
-      paciente:pacienteSeleccionado
-    }]);
   };
 
   const exportarExcel = () => {
@@ -195,71 +201,6 @@ export default function App() {
     );
   }
 
-  // PACIENTES
-  if(pagina==="pacientes"){
-    return(
-      <div style={container}>
-        <button style={btnBack} onClick={()=>setPagina("menu")}>← Regresar</button>
-
-        <h2>Nuevo / Editar Paciente</h2>
-
-        <input style={input} placeholder="Nombre"
-          value={formPaciente.nombre}
-          onChange={(e)=>setFormPaciente({...formPaciente,nombre:e.target.value})}/>
-
-        <input style={input} placeholder="Teléfono"
-          value={formPaciente.telefono}
-          onChange={(e)=>setFormPaciente({...formPaciente,telefono:e.target.value})}/>
-
-        <input style={input} placeholder="Edad"
-          value={formPaciente.edad}
-          onChange={(e)=>setFormPaciente({...formPaciente,edad:e.target.value})}/>
-
-        <input style={input} placeholder="Dirección"
-          value={formPaciente.direccion}
-          onChange={(e)=>setFormPaciente({...formPaciente,direccion:e.target.value})}/>
-
-        <input style={input} placeholder="Padecimiento / Motivo de visita"
-          value={formPaciente.padecimiento}
-          onChange={(e)=>setFormPaciente({...formPaciente,padecimiento:e.target.value})}/>
-
-        <input style={input} placeholder="Notas"
-          value={formPaciente.notas}
-          onChange={(e)=>setFormPaciente({...formPaciente,notas:e.target.value})}/>
-
-        <button style={btn} onClick={guardarPaciente}>
-          Guardar Paciente
-        </button>
-
-        <h2>Lista Pacientes</h2>
-
-        {pacientes.map(p=>(
-          <div key={p.id} style={card}>
-            <b>{p.nombre}</b>
-            <p>Tel: {p.telefono}</p>
-            <p>Edad: {p.edad}</p>
-            <p>Dirección: {p.direccion}</p>
-            <p>Padecimiento: {p.padecimiento}</p>
-            <p>Notas: {p.notas}</p>
-
-            <button style={btn}
-              onClick={()=>{
-                setFormPaciente(p);
-                setEditandoPaciente(p.id);
-              }}>
-              Editar
-            </button>
-
-            <button style={btn}
-              onClick={()=>eliminarPaciente(p.id)}>
-              Eliminar
-            </button>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
   // CITAS
   if(pagina==="citas"){
     return(
@@ -285,14 +226,6 @@ export default function App() {
           })}
         </div>
 
-        <div style={{marginTop:20}}>
-          <p>🟡 Hoy</p>
-          <p>🟢 Día con citas</p>
-          <p>🔴 Día lleno</p>
-          <p>🌸 Día no laborable</p>
-          <p>🔵 Día seleccionado</p>
-        </div>
-
         {fechaSeleccionada && (
           <>
             <h3>Paciente</h3>
@@ -304,11 +237,23 @@ export default function App() {
             </select>
 
             <h3>Horas</h3>
-            {horas.map(h=>(
-              <button key={h} style={btn} onClick={()=>agendar(h)}>{h}</button>
-            ))}
+            {horas.map(h=>{
+              const ocupada = horaOcupada(h);
+              return(
+                <button
+                  key={h}
+                  style={{
+                    ...btn,
+                    background: ocupada ? "gray" : "#1565c0"
+                  }}
+                  disabled={ocupada && !config.multiplePorHora}
+                  onClick={()=>agendar(h)}
+                >
+                  {h}
+                </button>
+              );
+            })}
 
-            <br/>
             <button style={btn} onClick={exportarExcel}>
               Exportar Excel del día
             </button>
@@ -360,6 +305,14 @@ export default function App() {
             {d}
           </button>
         ))}
+
+        <h3>Múltiples pacientes por hora</h3>
+        <button
+          style={{...btn, background: config.multiplePorHora ? "green" : "gray"}}
+          onClick={()=>setConfig({...config, multiplePorHora: !config.multiplePorHora})}
+        >
+          {config.multiplePorHora ? "Activado" : "Desactivado"}
+        </button>
       </div>
     );
   }
