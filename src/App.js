@@ -38,13 +38,20 @@ useEffect(()=>{
   try{
     const p = JSON.parse(localStorage.getItem("pacientes")) || [];
     const c = JSON.parse(localStorage.getItem("citas")) || [];
-    const conf = JSON.parse(localStorage.getItem("config")) || config;
+    const conf = JSON.parse(localStorage.getItem("config"));
     const l = localStorage.getItem("logo");
 
     setPacientes(p);
     setCitas(c);
-    setConfig(conf);
-    if(l) setLogo(l);
+
+    if(conf){
+      setConfig(conf);
+    }
+
+    if(l){
+      setLogo(l);
+    }
+
   }catch{
     localStorage.clear();
   }
@@ -282,7 +289,7 @@ function Citas(){
 
       {fechaSeleccionada && (
         <>
-        <h3>Horas disponibles</h3>
+        <h3>Horas</h3>
         {horas.map(h=>(
           <button key={h} style={btn} onClick={()=>agendar(h)}>
             {h}
