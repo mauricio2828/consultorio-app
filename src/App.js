@@ -79,6 +79,17 @@ export default function App() {
     setPacientes(pacientes.filter(p=>p.id!==id));
   };
 
+  // ===== CITAS FUNCIONES =====
+  const cancelarCita = (id)=>{
+    setCitas(citas.filter(c=>c.id !== id));
+  };
+
+  const reagendarCita = (cita)=>{
+    setPacienteSeleccionado(cita.paciente);
+    setFechaSeleccionada(cita.fecha);
+    setCitas(citas.filter(c=>c.id !== cita.id));
+  };
+
   // ===== LOGO =====
   const cambiarLogo=(e)=>{
     const file=e.target.files[0];
@@ -116,6 +127,12 @@ export default function App() {
 
   const agendar=(hora)=>{
     if(!pacienteSeleccionado || !fechaSeleccionada) return;
+
+    const existe = citas.some(
+      c => c.fecha === fechaSeleccionada && c.hora === hora
+    );
+
+    if(existe) return;
 
     setCitas([...citas,{
       id:Date.now(),
@@ -216,7 +233,6 @@ export default function App() {
           })}
         </div>
 
-        {/* LEYENDA */}
         <div style={{marginTop:20}}>
           <p>🟡 Hoy</p>
           <p>🟢 Día con citas</p>
@@ -244,6 +260,25 @@ export default function App() {
             <button style={btn} onClick={exportarExcel}>
               Exportar Excel del día
             </button>
+
+            <h3>Citas del día</h3>
+            {citas
+              .filter(c=>c.fecha === fechaSeleccionada)
+              .map(c=>(
+                <div key={c.id} style={card}>
+                  <b>{c.hora}</b> - {c.paciente}
+                  <br/>
+                  <button style={{...btn, background:"red"}}
+                    onClick={()=>cancelarCita(c.id)}>
+                    Cancelar
+                  </button>
+
+                  <button style={{...btn, background:"orange"}}
+                    onClick={()=>reagendarCita(c)}>
+                    Reagendar
+                  </button>
+                </div>
+            ))}
           </>
         )}
       </div>
