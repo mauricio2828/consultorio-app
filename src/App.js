@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import "./App.css";
 
-// ===== ESTILOS =====
 const container = { padding: 20, fontFamily: "Arial" };
 
 const btn = {
@@ -35,6 +34,7 @@ export default function App() {
   const [pacientes, setPacientes] = useState([]);
   const [citas, setCitas] = useState([]);
   const [logo, setLogo] = useState(null);
+  const [editandoPaciente, setEditandoPaciente] = useState(null);
 
   const [config, setConfig] = useState({
     inicio: 9,
@@ -47,13 +47,14 @@ export default function App() {
     telefono:"",
     edad:"",
     direccion:"",
+    padecimiento:"",
     notas:""
   });
 
   const [fechaSeleccionada,setFechaSeleccionada] = useState("");
   const [pacienteSeleccionado,setPacienteSeleccionado] = useState("");
 
-  // ===== STORAGE =====
+  // STORAGE
   useEffect(()=>{
     setPacientes(JSON.parse(localStorage.getItem("pacientes"))||[]);
     setCitas(JSON.parse(localStorage.getItem("citas"))||[]);
@@ -68,18 +69,36 @@ export default function App() {
   useEffect(()=>localStorage.setItem("config",JSON.stringify(config)),[config]);
   useEffect(()=>{ if(logo) localStorage.setItem("logo",logo)},[logo]);
 
-  // ===== PACIENTES =====
+  // PACIENTES
   const guardarPaciente = ()=>{
     if(!formPaciente.nombre) return;
-    setPacientes([...pacientes,{id:Date.now(),...formPaciente}]);
-    setFormPaciente({nombre:"",telefono:"",edad:"",direccion:"",notas:""});
+
+    if(editandoPaciente){
+      setPacientes(pacientes.map(p =>
+        p.id === editandoPaciente
+          ? { id: editandoPaciente, ...formPaciente }
+          : p
+      ));
+      setEditandoPaciente(null);
+    } else {
+      setPacientes([...pacientes,{id:Date.now(),...formPaciente}]);
+    }
+
+    setFormPaciente({
+      nombre:"",
+      telefono:"",
+      edad:"",
+      direccion:"",
+      padecimiento:"",
+      notas:""
+    });
   };
 
   const eliminarPaciente = (id)=>{
     setPacientes(pacientes.filter(p=>p.id!==id));
   };
 
-  // ===== CITAS FUNCIONES =====
+  // CITAS
   const cancelarCita = (id)=>{
     setCitas(citas.filter(c=>c.id !== id));
   };
@@ -90,7 +109,7 @@ export default function App() {
     setCitas(citas.filter(c=>c.id !== cita.id));
   };
 
-  // ===== LOGO =====
+  // LOGO
   const cambiarLogo=(e)=>{
     const file=e.target.files[0];
     const reader=new FileReader();
@@ -98,7 +117,7 @@ export default function App() {
     reader.readAsDataURL(file);
   };
 
-  // ===== CALENDARIO =====
+  // CALENDARIO
   const hoy = new Date();
   const diasSemana=["L","M","M","J","V","S","D"];
   const diasMes=new Date(hoy.getFullYear(),hoy.getMonth()+1,0).getDate();
@@ -161,7 +180,7 @@ export default function App() {
     a.click();
   };
 
-  // ===== MENU =====
+  // MENU
   if(pagina==="menu"){
     return(
       <div style={container}>
@@ -176,39 +195,72 @@ export default function App() {
     );
   }
 
-  // ===== PACIENTES =====
+  // PACIENTES
   if(pagina==="pacientes"){
     return(
       <div style={container}>
         <button style={btnBack} onClick={()=>setPagina("menu")}>← Regresar</button>
 
-        <h2>Nuevo Paciente</h2>
-        <input style={input} placeholder="Nombre" value={formPaciente.nombre}
+        <h2>Nuevo / Editar Paciente</h2>
+
+        <input style={input} placeholder="Nombre"
+          value={formPaciente.nombre}
           onChange={(e)=>setFormPaciente({...formPaciente,nombre:e.target.value})}/>
-        <input style={input} placeholder="Teléfono" value={formPaciente.telefono}
+
+        <input style={input} placeholder="Teléfono"
+          value={formPaciente.telefono}
           onChange={(e)=>setFormPaciente({...formPaciente,telefono:e.target.value})}/>
-        <input style={input} placeholder="Edad" value={formPaciente.edad}
+
+        <input style={input} placeholder="Edad"
+          value={formPaciente.edad}
           onChange={(e)=>setFormPaciente({...formPaciente,edad:e.target.value})}/>
-        <input style={input} placeholder="Dirección" value={formPaciente.direccion}
+
+        <input style={input} placeholder="Dirección"
+          value={formPaciente.direccion}
           onChange={(e)=>setFormPaciente({...formPaciente,direccion:e.target.value})}/>
-        <input style={input} placeholder="Notas" value={formPaciente.notas}
+
+        <input style={input} placeholder="Padecimiento / Motivo de visita"
+          value={formPaciente.padecimiento}
+          onChange={(e)=>setFormPaciente({...formPaciente,padecimiento:e.target.value})}/>
+
+        <input style={input} placeholder="Notas"
+          value={formPaciente.notas}
           onChange={(e)=>setFormPaciente({...formPaciente,notas:e.target.value})}/>
 
-        <button style={btn} onClick={guardarPaciente}>Guardar</button>
+        <button style={btn} onClick={guardarPaciente}>
+          Guardar Paciente
+        </button>
 
         <h2>Lista Pacientes</h2>
+
         {pacientes.map(p=>(
           <div key={p.id} style={card}>
             <b>{p.nombre}</b>
-            <p>{p.telefono}</p>
-            <button style={btn} onClick={()=>eliminarPaciente(p.id)}>Eliminar</button>
+            <p>Tel: {p.telefono}</p>
+            <p>Edad: {p.edad}</p>
+            <p>Dirección: {p.direccion}</p>
+            <p>Padecimiento: {p.padecimiento}</p>
+            <p>Notas: {p.notas}</p>
+
+            <button style={btn}
+              onClick={()=>{
+                setFormPaciente(p);
+                setEditandoPaciente(p.id);
+              }}>
+              Editar
+            </button>
+
+            <button style={btn}
+              onClick={()=>eliminarPaciente(p.id)}>
+              Eliminar
+            </button>
           </div>
         ))}
       </div>
     );
   }
 
-  // ===== CITAS =====
+  // CITAS
   if(pagina==="citas"){
     return(
       <div style={container}>
@@ -285,7 +337,7 @@ export default function App() {
     );
   }
 
-  // ===== CONFIG =====
+  // CONFIG
   if(pagina==="config"){
     return(
       <div style={container}>
@@ -312,7 +364,7 @@ export default function App() {
     );
   }
 
-  // ===== STATS =====
+  // STATS
   if(pagina==="stats"){
     return(
       <div style={container}>
