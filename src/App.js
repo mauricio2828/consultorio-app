@@ -3,13 +3,32 @@ import "./App.css";
 
 // ===== ESTILOS =====
 const container = { padding: 20, fontFamily: "Arial" };
-const btn = { padding: "10px 15px", margin: "5px", background: "#1976d2", color: "white", border: "none", borderRadius: "5px" };
-const btnBack = { padding: "8px 12px", marginBottom: "10px", background: "gray", color: "white", border: "none", borderRadius: "5px" };
+
+const btn = {
+  padding: "12px",
+  margin: "5px",
+  background: "#1565c0",
+  color: "white",
+  border: "none",
+  borderRadius: "8px",
+  cursor: "pointer",
+  fontWeight: "bold"
+};
+
+const btnBack = {
+  padding: "10px",
+  marginBottom: "10px",
+  background: "#424242",
+  color: "white",
+  border: "none",
+  borderRadius: "8px",
+  cursor: "pointer"
+};
+
 const input = { display: "block", margin: "5px 0", padding: "8px", width: "250px" };
 const card = { border: "1px solid #ccc", padding: "10px", marginTop: "10px" };
 const grid = { display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: "5px" };
 
-// ===== APP =====
 export default function App() {
 
   const [pagina, setPagina] = useState("menu");
@@ -30,6 +49,9 @@ export default function App() {
     direccion:"",
     notas:""
   });
+
+  const [fechaSeleccionada,setFechaSeleccionada] = useState("");
+  const [pacienteSeleccionado,setPacienteSeleccionado] = useState("");
 
   // ===== STORAGE =====
   useEffect(()=>{
@@ -67,9 +89,6 @@ export default function App() {
 
   // ===== CALENDARIO =====
   const hoy = new Date();
-  const [fechaSeleccionada,setFechaSeleccionada] = useState("");
-  const [pacienteSeleccionado,setPacienteSeleccionado] = useState("");
-
   const diasSemana=["L","M","M","J","V","S","D"];
   const diasMes=new Date(hoy.getFullYear(),hoy.getMonth()+1,0).getDate();
   const primerDia=(new Date(hoy.getFullYear(),hoy.getMonth(),1).getDay()+6)%7;
@@ -106,17 +125,36 @@ export default function App() {
     }]);
   };
 
-  // ===== MENÚ =====
+  const exportarExcel = () => {
+    if(!fechaSeleccionada) return;
+
+    let texto = "Hora,Paciente\n";
+
+    horas.forEach(h => {
+      const cita = citas.find(c => c.fecha === fechaSeleccionada && c.hora === h);
+      texto += `${h},${cita ? cita.paciente : ""}\n`;
+    });
+
+    const blob = new Blob([texto], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Horario.csv";
+    a.click();
+  };
+
+  // ===== MENU =====
   if(pagina==="menu"){
     return(
       <div style={container}>
         {logo && <img src={logo} alt="" width="120"/>}
         <h1>Consultorio</h1>
 
-        <button style={btn} onClick={()=>setPagina("pacientes")}>Pacientes</button>
-        <button style={btn} onClick={()=>setPagina("citas")}>Citas</button>
-        <button style={btn} onClick={()=>setPagina("config")}>Configuración</button>
-        <button style={btn} onClick={()=>setPagina("stats")}>Estadísticas</button>
+        <button style={btn} onClick={()=>setPagina("pacientes")}>👤 Pacientes</button>
+        <button style={btn} onClick={()=>setPagina("citas")}>📅 Citas</button>
+        <button style={btn} onClick={()=>setPagina("config")}>⚙️ Configuración</button>
+        <button style={btn} onClick={()=>setPagina("stats")}>📊 Estadísticas</button>
       </div>
     );
   }
@@ -178,6 +216,15 @@ export default function App() {
           })}
         </div>
 
+        {/* LEYENDA */}
+        <div style={{marginTop:20}}>
+          <p>🟡 Hoy</p>
+          <p>🟢 Día con citas</p>
+          <p>🔴 Día lleno</p>
+          <p>🌸 Día no laborable</p>
+          <p>🔵 Día seleccionado</p>
+        </div>
+
         {fechaSeleccionada && (
           <>
             <h3>Paciente</h3>
@@ -192,6 +239,11 @@ export default function App() {
             {horas.map(h=>(
               <button key={h} style={btn} onClick={()=>agendar(h)}>{h}</button>
             ))}
+
+            <br/>
+            <button style={btn} onClick={exportarExcel}>
+              Exportar Excel del día
+            </button>
           </>
         )}
       </div>
